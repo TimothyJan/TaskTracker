@@ -15,6 +15,9 @@
         public const string RoleNotFound = "Role {0} not found.";
         public const string RoleAlreadyExists = "Role {0} [{1}] already exists.";
         public const string EmployeeNotFound = "Employee {0} not found.";
+        public const string ProjectNotFound = "Project {0} not found.";
+        public const string ProjectAlreadyExists = "Project {0} [{1}] already exists.";
+        public const string ProjectTaskNotFound = "ProjectTask {0} not found.";
 
         // Validation errors
         public const string InvalidLength = "{0} must be between {1} and {2} characters.";

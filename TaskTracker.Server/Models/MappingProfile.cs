@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using TaskTracker.Models.Department;
 using TaskTracker.Models.Employee;
+using TaskTracker.Models.Project;
+using TaskTracker.Models.ProjectTask;
 using TaskTracker.Models.Role;
 
 namespace TaskTracker.Models
@@ -26,6 +28,19 @@ namespace TaskTracker.Models
             CreateMap<EmployeeDto, EmployeeEntity>();
             CreateMap<CreateEmployeeDto, EmployeeEntity>();
             CreateMap<UpdateEmployeeDto, EmployeeEntity>();
+
+            // Project mappings
+            CreateMap<ProjectEntity, ProjectDto>();
+            CreateMap<ProjectDto, ProjectEntity>();
+            CreateMap<CreateProjectDto, ProjectEntity>();
+            CreateMap<UpdateProjectDto, ProjectEntity>();
+
+            // ProjectTask mappings
+            CreateMap<ProjectTaskEntity, ProjectTaskDto>()
+                .ForMember(dest => dest.ProjectName, opt => opt.MapFrom(src => src.Project.Name_));
+            CreateMap<ProjectTaskDto, ProjectTaskEntity>();
+            CreateMap<CreateProjectTaskDto, ProjectTaskEntity>();
+            CreateMap<UpdateProjectTaskDto, ProjectTaskEntity>();
         }
     }
 }

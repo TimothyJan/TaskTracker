@@ -32,6 +32,8 @@ builder.Services.AddDbContext<TaskTrackerDbContext>(options =>
 // Register repository
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+builder.Services.AddScoped<IProjectTaskRepository, ProjectTaskRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 
 // Register AutoMapper

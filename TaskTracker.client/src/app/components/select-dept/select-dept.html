@@ -1,0 +1,17 @@
+@if(!isLoading) {
+
+  <mat-label>Department: </mat-label>
+  <mat-form-field>
+    <mat-select
+      (selectionChange)="onDepartmentChange($event)"
+      [value]="selectedDepartmentId"
+      placeholder="Select Department">
+      <mat-option *ngFor="let department of departments" [value]="department.id">
+        {{ department.name_ }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+
+} @else {
+  <mat-spinner></mat-spinner>
+}

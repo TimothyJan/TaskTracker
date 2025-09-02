@@ -1,0 +1,44 @@
+@if (!isLoading) {
+
+  <mat-card-content>
+    <mat-list>
+      <mat-list-item>
+        <mat-grid-list cols="4">
+          <mat-grid-tile colspan="3">
+            Department Name
+          </mat-grid-tile>
+          <mat-grid-tile colspan="1"></mat-grid-tile>
+        </mat-grid-list>
+      </mat-list-item>
+
+      @for(department of departments; track department.id ) {
+        <mat-list-item>
+          <mat-grid-list cols="4">
+            <mat-grid-tile colspan="3">
+              {{ department.name_ }}
+            </mat-grid-tile>
+            <mat-grid-tile colspan="1">
+
+              <button matIconButton [matMenuTriggerFor]="menu">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="onOpenEditDialog(department.id)">Edit</button>
+                <button mat-menu-item (click)="onDelete(department.id)">Delete</button>
+                <button mat-menu-item>Cancel</button>
+              </mat-menu>
+
+            </mat-grid-tile>
+          </mat-grid-list>
+        </mat-list-item>
+        }
+      @empty {
+        No Departments found.
+      }
+    </mat-list>
+  </mat-card-content>
+
+} @else {
+  <mat-spinner></mat-spinner>
+}

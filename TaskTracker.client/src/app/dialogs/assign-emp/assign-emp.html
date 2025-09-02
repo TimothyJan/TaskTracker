@@ -1,0 +1,31 @@
+@if(!isLoading) {
+
+  <h1 mat-dialog-title>Assign Employees to: {{ projectTask.name_ }}</h1>
+
+  <div mat-dialog-content>
+    <form>
+      <mat-selection-list
+        multiple
+        [(ngModel)]="selectedEmployees"
+        name="employees">
+        @for(employee of employees; track employee.id) {
+          <mat-list-option
+            [value]="employee.id">
+            {{ employee.name_ }} (ID: {{ employee.id }})
+          </mat-list-option>
+        }
+        @empty {
+          No Employees found.
+        }
+      </mat-selection-list>
+    </form>
+  </div>
+
+  <div mat-dialog-actions align="end">
+    <button mat-button (click)="cancel()">Cancel</button>
+    <button mat-raised-button color="primary" (click)="saveAssignments()">Save</button>
+  </div>
+
+} @else {
+  <mat-spinner></mat-spinner>
+}

@@ -1,0 +1,33 @@
+@if(!isLoading) {
+  <h1 mat-dialog-title>
+    @if(data.id === undefined) {
+      Create Department
+    } @else {
+      Edit Department
+    }
+  </h1>
+
+  <div mat-dialog-content>
+    <form [formGroup]="form" (ngSubmit)="confirm()">
+      <label>Department: </label>
+      <mat-form-field appearance="outline">
+        <input
+          matInput
+          formControlName="name_"
+          (blur)="form.get('name_')?.markAsTouched()">
+        @if (form.get('name_')?.invalid) {
+          <mat-error>
+            {{ errorControls }}
+          </mat-error>
+        }
+      </mat-form-field>
+    </form>
+  </div>
+
+  <div mat-dialog-actions align="end">
+    <button mat-button (click)="cancel()">Cancel</button>
+    <button mat-raised-button color="primary" (click)="confirm()">Save</button>
+  </div>
+} @else {
+  <mat-spinner></mat-spinner>
+}

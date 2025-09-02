@@ -1,0 +1,15 @@
+C:\Github\TaskTracker\TaskTracker.client\bin\Debug\net8.0\spa.proxy.json
+C:\Github\TaskTracker\TaskTracker.client\bin\Debug\net8.0\TaskTracker.client.deps.json
+C:\Github\TaskTracker\TaskTracker.client\bin\Debug\net8.0\TaskTracker.client.dll
+C:\Github\TaskTracker\TaskTracker.client\bin\Debug\net8.0\TaskTracker.client.pdb
+C:\Github\TaskTracker\TaskTracker.client\obj\Debug\net8.0\TaskTracker.client.csproj.AssemblyReference.cache
+C:\Github\TaskTracker\TaskTracker.client\obj\Debug\net8.0\spa.proxy.json
+C:\Github\TaskTracker\TaskTracker.client\obj\Debug\net8.0\TaskTracker.client.GeneratedMSBuildEditorConfig.editorconfig
+C:\Github\TaskTracker\TaskTracker.client\obj\Debug\net8.0\TaskTracker.client.AssemblyInfoInputs.cache
+C:\Github\TaskTracker\TaskTracker.client\obj\Debug\net8.0\TaskTracker.client.AssemblyInfo.cs
+C:\Github\TaskTracker\TaskTracker.client\obj\Debug\net8.0\TaskTracker.client.csproj.CoreCompileInputs.cache
+C:\Github\TaskTracker\TaskTracker.client\obj\Debug\net8.0\TaskTracker.client.sourcelink.json
+C:\Github\TaskTracker\TaskTracker.client\obj\Debug\net8.0\TaskTracker.client.dll
+C:\Github\TaskTracker\TaskTracker.client\obj\Debug\net8.0\refint\TaskTracker.client.dll
+C:\Github\TaskTracker\TaskTracker.client\obj\Debug\net8.0\TaskTracker.client.pdb
+C:\Github\TaskTracker\TaskTracker.client\obj\Debug\net8.0\ref\TaskTracker.client.dll

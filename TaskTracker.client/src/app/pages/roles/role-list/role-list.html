@@ -1,0 +1,56 @@
+@if(!isLoading) {
+
+  <mat-card-content>
+    <mat-button-toggle-group>
+      <mat-button-toggle (click)="toggleSort('role')" [checked]="sortBy === 'role'">
+        Sort by Role
+      </mat-button-toggle>
+      <mat-button-toggle (click)="toggleSort('department')" [checked]="sortBy === 'department'">
+        Sort by Department
+      </mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <mat-list>
+      <mat-list-item>
+        <mat-grid-list cols="7">
+          <mat-grid-tile colspan="3">
+            Role Name
+          </mat-grid-tile>
+          <mat-grid-tile colspan="3">
+            Department
+          </mat-grid-tile>
+          <mat-grid-tile colspan="1">
+          </mat-grid-tile>
+        </mat-grid-list>
+      </mat-list-item>
+
+      @for (role of sortedRoles; track role.id) {
+        <mat-list-item>
+          <mat-grid-list cols="7">
+            <mat-grid-tile colspan="3">
+              {{ role.name_ | truncate:30 }}
+            </mat-grid-tile>
+            <mat-grid-tile colspan="3">
+              {{ getDepartmentName(role.departmentId)! | truncate:30 }}
+            </mat-grid-tile>
+            <mat-grid-tile colspan="1">
+              <button matIconButton [matMenuTriggerFor]="menu">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="onOpenEditDialog(role.id)">Edit</button>
+                <button mat-menu-item (click)="onDelete(role.id)">Delete</button>
+              </mat-menu>
+            </mat-grid-tile>
+          </mat-grid-list>
+        </mat-list-item>
+      }
+      @empty {
+        No Roles found.
+      }
+    </mat-list>
+  </mat-card-content>
+
+} @else {
+  <mat-spinner></mat-spinner>
+}

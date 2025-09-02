@@ -1,0 +1,69 @@
+@if(!isLoading) {
+
+  <h1 mat-dialog-title>{{ data.projectId === undefined ? "Create" : "Edit" }} Project</h1>
+
+  <div mat-dialog-content>
+    <form [formGroup]="form" (ngSubmit)="confirm()">
+
+      <div class="flex-container">
+        <div class="flex-item">
+          <label>Project: </label>
+          <mat-form-field appearance="outline">
+            <input
+              matInput
+              formControlName="name_"
+              (blur)="form.get('name_')?.markAsTouched()">
+            @if (errorControlsProjectName) {
+              <mat-error>
+                {{ errorControlsProjectName }}
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+        <div class="flex-item">
+          <label>Description: </label>
+          <mat-form-field appearance="outline">
+            <input
+              matInput
+              formControlName="description_"
+              (blur)="form.get('description_')?.markAsTouched()">
+            @if (errorControlsDescription) {
+              <mat-error>
+                {{ errorControlsDescription }}
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+        <div class="flex-item">
+          <app-select-status
+            [value]="form.get('status_')?.value"
+            (statusChanged)="handleStatusChange($event)">
+          </app-select-status>
+        </div>
+        <div class="flex-item">
+          <app-date-picker
+            [label]="'Start Date'"
+            [initialDate]="form.get('startDate')?.value"
+            (dateSelected)="handleStartDateSelection($event)">
+          </app-date-picker>
+        </div>
+        <div class="flex-item">
+          <app-date-picker
+            [label]="'End Date'"
+            [initialDate]="form.get('dueDate')?.value"
+            (dateSelected)="handleDueDateSelection($event)">
+          </app-date-picker>
+        </div>
+      </div>
+
+    </form>
+  </div>
+
+  <div mat-dialog-actions align="end">
+    <button mat-button (click)="cancel()">Cancel</button>
+    <button mat-raised-button color="primary" (click)="confirm()">Save</button>
+  </div>
+
+} @else {
+  <mat-spinner></mat-spinner>
+}

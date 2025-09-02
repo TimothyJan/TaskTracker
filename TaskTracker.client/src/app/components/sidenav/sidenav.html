@@ -1,0 +1,49 @@
+<mat-sidenav-container class="sidenav-container">
+
+  <!-- Side Navigation -->
+  <mat-sidenav #sidenav
+               mode="side"
+               fixedInViewport="true"
+               fixedTopGap="72"
+               role="navigation"
+               (closed)="sidenavService.close()"
+               (opened)="sidenavService.open()">
+
+    <mat-nav-list *ngFor="let navItem of navItems">
+      <a mat-list-item [routerLink]="navItem.routerLink" (click)="closeSidenav()">
+        <mat-icon>{{ navItem.matIcon }}</mat-icon>
+        <span>{{ navItem.title }}</span>
+      </a>
+    </mat-nav-list>
+
+    <div class="flex-container">
+      <div class="flex-item">
+        <p>
+          Created by Timothy Jan
+          <a href="https://github.com/TimothyJan/JanTaskTracker-Frontend-Ionic" class="social-icon">
+            <i class="fab fa-github"></i>
+          </a>
+        </p>
+      </div>
+      <div class="flex-item">
+        <span id="current-year">{{ currentYear }}</span> JanTaskTracker &copy;
+      </div>
+    </div>
+
+  </mat-sidenav>
+
+  <!-- Main Content -->
+  <mat-sidenav-content>
+    <mat-toolbar color="primary">
+      <button mat-icon-button (click)="toggleSidenav()">
+        <mat-icon>menu</mat-icon>
+      </button>
+      <span>JanTaskTracker</span>
+    </mat-toolbar>
+
+    <div class="content-wrapper">
+      <ng-content></ng-content>
+    </div>
+
+  </mat-sidenav-content>
+</mat-sidenav-container>

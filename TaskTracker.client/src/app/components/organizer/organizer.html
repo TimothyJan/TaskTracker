@@ -1,0 +1,53 @@
+<div class="app-container">
+  <mat-sidenav-container>
+    <mat-sidenav [(opened)]="isMenuOpen" mode="side" class="app-sidenav">
+      <div class="sidenav-header">
+        <h1>JanTaskTracker</h1>
+        <mat-divider></mat-divider>
+        <p class="sidenav-subtitle">Manage your projects effortlessly</p>
+      </div>
+
+      <mat-nav-list>
+        @for (p of appPages; track p; let i = $index) {
+          <a mat-list-item
+             [routerLink]="[p.url]"
+             routerLinkActive="selected"
+             matRipple>
+            <mat-icon matListItemIcon>{{ p.icon }}</mat-icon>
+            <span matListItemTitle>{{ p.title }}</span>
+          </a>
+        }
+      </mat-nav-list>
+
+      <div class="sidenav-footer">
+        <mat-divider></mat-divider>
+        <div class="footer-content">
+          <p>
+            Created by Timothy Jan
+            <a href="https://github.com/TimothyJan/JanTaskTracker-Frontend-Ionic" class="social-icon">
+              <mat-icon fontSet="fa" fontIcon="fa-github"></mat-icon>
+            </a>
+          </p>
+          <p>
+            <span id="current-year">{{ currentYear }}</span> JanTaskTracker All rights reserved
+          </p>
+        </div>
+      </div>
+    </mat-sidenav>
+
+    <mat-sidenav-content class="app-content">
+      <mat-toolbar color="primary">
+        <button mat-icon-button (click)="toggleMenu()">
+          <mat-icon>menu</mat-icon>
+        </button>
+        <span class="toolbar-spacer"></span>
+        <!-- Additional toolbar content can go here -->
+      </mat-toolbar>
+
+      <div class="content-wrapper">
+        <!-- <router-outlet></router-outlet> -->
+        <ng-content></ng-content>
+      </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>

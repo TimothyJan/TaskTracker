@@ -4,7 +4,7 @@ import { FormGroup, FormControl, Validators, FormsModule, ReactiveFormsModule } 
 import { Subject } from 'rxjs';
 import { DatePicker } from '../../components/date-picker/date-picker';
 import { SelectStatus } from '../../components/select-status/select-status';
-import { ProjectTask } from '../../models/project-task.model';
+import { ProjectTaskModel } from '../../models/project-task.model';
 
 import { SnackbarService } from '../../services/snackbar-service';
 import { ProjectTaskService } from '../../services/project-task-service';
@@ -145,7 +145,7 @@ export class ProjectTaskDialog implements OnInit, OnDestroy {
   createProjectTask(): void {
     this.isLoading = true;
     const formValue = this.form.getRawValue();
-    const newProjectTask: ProjectTask = {
+    const newProjectTask: ProjectTaskModel = {
       id: formValue.id,
       projectId: formValue.projectId,
       name_: formValue.name_.trim(),
@@ -164,7 +164,7 @@ export class ProjectTaskDialog implements OnInit, OnDestroy {
   updateProjectTask(): void {
     this.isLoading = true;
     const formValue = this.form.getRawValue();
-    const updatedProjectTask: ProjectTask = {
+    const updatedProjectTask: ProjectTaskModel = {
       id: formValue.id,
       projectId: formValue.projectId,
       name_: formValue.name_.trim(),

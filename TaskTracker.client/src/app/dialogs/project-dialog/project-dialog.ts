@@ -4,7 +4,7 @@ import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { Subject } from 'rxjs';
 import { DatePicker } from '../../components/date-picker/date-picker';
 import { SelectStatus } from '../../components/select-status/select-status';
-import { Project } from '../../models/project.model';
+import { ProjectModel } from '../../models/project.model';
 
 import { SnackbarService } from '../../services/snackbar-service';
 import { ProjectService } from '../../services/project-service';
@@ -140,7 +140,7 @@ export class ProjectDialog implements OnInit, OnDestroy {
   createProject(): void {
     this.isLoading = true;
     const formValue = this.form.getRawValue();
-    const newProject: Project = {
+    const newProject: ProjectModel = {
       id: formValue.id,
       name_: formValue.name_.trim(),
       description_: formValue.description_.trim(),
@@ -157,7 +157,7 @@ export class ProjectDialog implements OnInit, OnDestroy {
   updateProject(): void {
     this.isLoading = true;
     const formValue = this.form.getRawValue();
-    const updatedProject: Project = {
+    const updatedProject: ProjectModel = {
       id: formValue.id,
       name_: formValue.name_.trim(),
       description_: formValue.description_.trim(),

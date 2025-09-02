@@ -1,4 +1,4 @@
-export class Project {
+export class ProjectModel {
   id: number;
   name_: string;
   description_: string;

@@ -3,7 +3,7 @@ import { Component, inject, Inject, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { Employee } from '../../models/employee.model';
-import { ProjectTask } from '../../models/project-task.model';
+import { ProjectTaskModel } from '../../models/project-task.model';
 
 import { SnackbarService } from '../../services/snackbar-service';
 import { EmployeeService } from '../../services/employee-service';
@@ -42,7 +42,7 @@ export class AssignEmp implements OnInit, OnDestroy {
   private unsubscribe$ = new Subject<void>();
 
   isLoading: boolean = false;
-  projectTask: ProjectTask = new ProjectTask(0, 0, "", "", "Not Started", new Date(), new Date(), []);
+  projectTask: ProjectTaskModel = new ProjectTaskModel(0, 0, "", "", "Not Started", new Date(), new Date(), []);
   employees: Employee[] = [];
   selectedEmployees: number[] = [];
 

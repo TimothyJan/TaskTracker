@@ -1,0 +1,18 @@
+<mat-card appearance="outlined">
+  <mat-grid-list cols="5" rowHeight="3:1">
+    <mat-grid-tile colspan="2">
+      <mat-card-title>
+        <h2>Employee List</h2>
+      </mat-card-title>
+    </mat-grid-tile>
+    <mat-grid-tile colspan="2"></mat-grid-tile>
+    <mat-grid-tile colspan="1">
+      <button mat-raised-button color="primary" (click)="onOpenEmployeeDialog()">
+        Add Employee
+      </button>
+    </mat-grid-tile>
+  </mat-grid-list>
+
+  <app-employee-list></app-employee-list>
+
+</mat-card>

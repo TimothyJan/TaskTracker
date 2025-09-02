@@ -1,0 +1,51 @@
+@if (!isLoading) {
+
+  <mat-card appearance="outlined">
+
+    <mat-grid-list cols="15" rowHeight="2em">
+      <mat-grid-tile colspan="4">
+        <div class="date">
+          {{ project.startDate | date: 'shortDate':'UTC' }} - {{ project.dueDate | date: 'shortDate':'UTC' }}
+        </div>
+      </mat-grid-tile>
+      <mat-grid-tile colspan="7"></mat-grid-tile>
+      <mat-grid-tile colspan="3">
+        <div class="status">
+          {{ project.status_ }}
+        </div>
+      </mat-grid-tile>
+      <mat-grid-tile colspan="1">
+        <button matIconButton [matMenuTriggerFor]="menu">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+
+        <mat-menu #menu="matMenu">
+          <button mat-menu-item (click)="openProjectEditDialog()">Edit</button>
+          <button mat-menu-item (click)="openProjectTaskCreateDialog()">Add Task</button>
+          <button mat-menu-item (click)="onDelete()">Delete</button>
+          <button mat-menu-item>Cancel</button>
+        </mat-menu>
+      </mat-grid-tile>
+    </mat-grid-list>
+
+    <mat-card-content>
+      <mat-card-title>
+        <h2>
+          {{ project.name_ }}
+        </h2>
+      </mat-card-title>
+
+      <p>{{ project.description_ }}</p>
+
+      @for (projectTaskId of listOfProjectTaskIds; track projectTaskId) {
+        <app-project-task [projectTaskId]="projectTaskId"></app-project-task>
+      } @empty {
+        No Project Tasks
+      }
+
+    </mat-card-content>
+  </mat-card>
+
+} @else {
+  <mat-spinner></mat-spinner>
+}

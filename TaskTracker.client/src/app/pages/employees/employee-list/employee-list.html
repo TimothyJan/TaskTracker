@@ -1,0 +1,73 @@
+@if(!isLoading) {
+
+  <mat-card-content>
+    <div class="sort-controls">
+      <mat-button-toggle-group>
+        <mat-button-toggle (click)="toggleSort('employee')" [checked]="sortBy === 'employee'">
+          Sort by Employee
+        </mat-button-toggle>
+        <mat-button-toggle (click)="toggleSort('role')" [checked]="sortBy === 'role'">
+          Sort by Role
+        </mat-button-toggle>
+        <mat-button-toggle (click)="toggleSort('department')" [checked]="sortBy === 'department'">
+          Sort by Department
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <mat-list>
+      <mat-list-item>
+        <mat-grid-list cols="12">
+          <mat-grid-tile colspan="3">
+            Employee Name
+          </mat-grid-tile>
+          <mat-grid-tile colspan="3">
+            Role
+          </mat-grid-tile>
+          <mat-grid-tile colspan="3">
+            Department
+          </mat-grid-tile>
+          <mat-grid-tile colspan="2">
+            Salary
+          </mat-grid-tile>
+          <mat-grid-tile colspan="1">
+          </mat-grid-tile>
+        </mat-grid-list>
+      </mat-list-item>
+
+      @for(employee of sortedEmployees; track employee.id) {
+        <mat-list-item>
+          <mat-grid-list cols="12">
+            <mat-grid-tile colspan="3">
+              {{ employee.name_ | truncate:12 }}
+            </mat-grid-tile>
+            <mat-grid-tile colspan="3">
+              {{ getRoleName(employee.roleId)! | truncate:12 }}
+            </mat-grid-tile>
+            <mat-grid-tile colspan="3">
+              {{ getDepartmentName(employee.departmentId)! | truncate:12 }}
+            </mat-grid-tile>
+            <mat-grid-tile colspan="2">
+              {{ employee.salary | currency }}
+            </mat-grid-tile>
+            <mat-grid-tile colspan="1">
+              <button matIconButton [matMenuTriggerFor]="menu">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="onOpenEditDialog(employee.id)">Edit</button>
+                <button mat-menu-item (click)="onDelete(employee.id)">Delete</button>
+              </mat-menu>
+            </mat-grid-tile>
+          </mat-grid-list>
+        </mat-list-item>
+      }
+      @empty {
+        No Employees found.
+      }
+    </mat-list>
+  </mat-card-content>
+
+} @else {
+  <mat-spinner></mat-spinner>
+}

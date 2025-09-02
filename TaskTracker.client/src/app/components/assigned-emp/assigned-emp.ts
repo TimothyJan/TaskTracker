@@ -1,6 +1,6 @@
 import { Component, inject, Input, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ProjectTask } from '../../models/project-task.model';
+import { ProjectTaskModel } from '../../models/project-task.model';
 import { AssignEmp } from '../../dialogs/assign-emp/assign-emp';
 import { Employee } from '../../models/employee.model';
 import { Role } from '../../models/role.model';
@@ -53,7 +53,7 @@ export class AssignedEmp implements OnInit, OnDestroy {
   @Input() projectTaskId: number = -1;
 
   isLoading: boolean = false;
-  projectTask: ProjectTask = new ProjectTask(0, 0, "", "", "Not Started", new Date(), new Date(), []);
+  projectTask: ProjectTaskModel = new ProjectTaskModel(0, 0, "", "", "Not Started", new Date(), new Date(), []);
   assignedEmployeeList: Employee[] = [];
   employees: Employee[] = [];
   roles: Role[] = [];

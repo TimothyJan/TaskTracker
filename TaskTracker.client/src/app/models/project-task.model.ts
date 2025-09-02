@@ -1,4 +1,4 @@
-export class ProjectTask {
+export class ProjectTaskModel {
   id: number;
   projectId: number;
   name_: string;

@@ -1,0 +1,28 @@
+<mat-card-header>
+  <mat-card-title class="header">
+    <h1>Projects</h1>
+  </mat-card-title>
+  <button mat-raised-button color="primary" (click)="openProjectCreateDialog()">
+    Add Project
+  </button>
+</mat-card-header>
+
+<!-- Status Filter Tabs - Use index for tracking -->
+<mat-tab-group (selectedTabChange)="onTabChange($event)" animationDuration="0ms">
+  @for (option of statusOptions; track $index) {
+    <mat-tab [label]="option.label"></mat-tab>
+  }
+</mat-tab-group>
+
+<mat-card-content>
+  @if (isLoading) {
+    <p>Loading projects...</p>
+  } @else {
+    @for(projectId of filteredProjectIds(); track projectId) {
+      <app-project [projectId]="projectId"></app-project>
+    } @empty {
+      <h3>No Projects Found</h3>
+      <p>Get started by creating your first project</p>
+    }
+  }
+</mat-card-content>

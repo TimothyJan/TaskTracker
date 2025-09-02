@@ -1,0 +1,48 @@
+@if(!isLoading) {
+
+  <h1 mat-dialog-title>
+    @if(data.roleId === undefined) {
+      Create Role
+    } @else {
+      Edit Role
+    }
+
+  </h1>
+
+  <div mat-dialog-content>
+    <form [formGroup]="form" (ngSubmit)="confirm()">
+
+      <div class="flex-container">
+        <div class="flex-item">
+          <app-select-dept
+            [departmentId]="form.get('departmentId')?.value"
+            (departmentChanged)="handleDepartmentChange($event)">
+          </app-select-dept>
+        </div>
+        <div class="flex-item">
+          <label>Role: </label>
+          <mat-form-field appearance="outline">
+            <input
+              matInput
+              formControlName="name_"
+              (blur)="form.get('name_')?.markAsTouched()">
+            @if (form.get('name_')?.invalid) {
+              <mat-error>
+                {{ errorControls }}
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </div>
+
+    </form>
+  </div>
+
+  <div mat-dialog-actions align="end">
+    <button mat-button (click)="cancel()">Cancel</button>
+    <button mat-raised-button color="primary" (click)="confirm()">Save</button>
+  </div>
+
+} @else {
+  <mat-spinner></mat-spinner>
+}

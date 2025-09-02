@@ -1,0 +1,65 @@
+@if(!isLoading) {
+
+  <h1 mat-dialog-title>{{ data.employeeId === undefined ? 'Add' : 'Edit' }} Employee</h1>
+
+  <div mat-dialog-content>
+    <form [formGroup]="form" (ngSubmit)="confirm()">
+
+      <div class="flex-container">
+        <div class="flex-item">
+          <app-select-dept
+            [departmentId]="form.get('departmentId')?.value"
+            (departmentChanged)="handleDepartmentChange($event)">
+          </app-select-dept>
+        </div>
+        <div class="flex-item">
+          <app-select-role
+            [departmentId]="form.get('departmentId')?.value"
+            [roleId]="form.get('roleId')?.value"
+            (roleChanged)="handleRoleChange($event)">
+          </app-select-role>
+        </div>
+        <div class="flex-item">
+          <label>Employee Name: </label>
+          <mat-form-field appearance="outline">
+            <input
+              matInput
+              formControlName="name_"
+              (blur)="form.get('name_')?.markAsTouched()">
+            @if (errorControlsName) {
+              <mat-error>
+                {{ errorControlsName }}
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+        <div class="flex-item">
+          <label>Salary: </label>
+          <mat-form-field appearance="outline">
+            <span matTextPrefix>$&nbsp;</span>
+            <input
+              matInput
+              formControlName="salary"
+              (input)="onSalaryInput($event)"
+              (blur)="form.get('salary')?.markAsTouched()"
+              placeholder="0.00">
+            @if (errorControlsSalary) {
+              <mat-error>
+                {{ errorControlsSalary }}
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </div>
+
+    </form>
+  </div>
+
+  <div mat-dialog-actions align="end">
+    <button mat-button (click)="cancel()">Cancel</button>
+    <button mat-raised-button color="primary" (click)="confirm()">Save</button>
+  </div>
+
+} @else {
+  <mat-spinner></mat-spinner>
+}

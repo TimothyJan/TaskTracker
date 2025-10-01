@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Department } from '../../../models/department.model';
 import { DepartmentDialog } from '../../../dialogs/department-dialog/department-dialog';
 import { Subject, takeUntil } from 'rxjs';
+import { ApiResponse } from '../../../models/apiResponse.model';
 
 import { SnackbarService } from '../../../services/snackbar-service';
 import { DepartmentService } from '../../../services/department-service';
@@ -35,37 +36,64 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 export class DepartmentList implements OnInit, OnDestroy {
   private _snackbarService = inject(SnackbarService);
   private _departmentService = inject(DepartmentService);
+  private _cdr = inject(ChangeDetectorRef); // Add ChangeDetectorRef
   private unsubscribe$ = new Subject<void>();
   isLoading: boolean = false;
   departments: Department[] = [];
 
-  constructor(
-    private dialog: MatDialog
-  ) {}
+  constructor(private dialog: MatDialog) {}
 
   ngOnInit(): void {
     this.getDepartments();
-  }
-
-  /** Get all departments */
-  getDepartments(): void {
-    this.isLoading = true;
-    this.departments = this._departmentService.getDepartments();
-    this.isLoading = false;
 
     // Subscribe to the department notifications
     this._departmentService.departmentsChanged$
       .pipe(takeUntil(this.unsubscribe$))
       .subscribe(() => {
-        this.getDepartments(); // Reload departments with updates
+        // Use setTimeout to avoid change detection issues
+        setTimeout(() => this.getDepartments());
       });
+  }
+
+  /** Get all departments */
+  getDepartments(): void {
+    this.isLoading = true;
+    this._departmentService.getDepartments()
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Department[]>) => {
+        if (response.success) {
+          this.departments = response.data || [];
+        } else {
+          this._snackbarService.error(response.message);
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges(); // Manually trigger change detection
+      },
+      error: (response) => {
+        console.error('Error loading departments:', response);
+        this._snackbarService.error('Failed to load departments. Please check if the API server is running.');
+        this.isLoading = false;
+        this._cdr.detectChanges(); // Manually trigger change detection
+      }
+    });
   }
 
   /** Open Department Edit dialog */
   onOpenEditDialog(departmentId: number): void {
-    this.dialog.open(DepartmentDialog, {
+    const dialogRef = this.dialog.open(DepartmentDialog, {
       width: '500px',
       data: { departmentId }
+    });
+
+    // Subscribe to dialog close to handle updates
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        // Use setTimeout to avoid change detection issues
+        setTimeout(() => {
+          this._departmentService.notifyDepartmentsChanged();
+        });
+      }
     });
   }
 
@@ -74,10 +102,28 @@ export class DepartmentList implements OnInit, OnDestroy {
     const confirmDelete = confirm('Are you sure you want to delete this department?');
     if (confirmDelete) {
       this.isLoading = true;
-      this._departmentService.deleteDepartment(departmentId);
-      this.getDepartments();
-      this._snackbarService.success("Department deleted.");
-      this.isLoading = false;
+      this._departmentService.deleteDepartment(departmentId)
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe({
+          next: (response: ApiResponse) => {
+            if (response.success) {
+              this._snackbarService.success("Department deleted.");
+              // Use setTimeout to avoid change detection issues
+              setTimeout(() => {
+                this._departmentService.notifyDepartmentsChanged();
+              });
+            } else {
+              this._snackbarService.error(response.message);
+            }
+            this.isLoading = false;
+            this._cdr.detectChanges(); // Manually trigger change detection
+          },
+          error: (response) => {
+            this._snackbarService.error(response.error?.message || 'Failed to delete department');
+            this.isLoading = false;
+            this._cdr.detectChanges(); // Manually trigger change detection
+          }
+        });
     }
   }
 

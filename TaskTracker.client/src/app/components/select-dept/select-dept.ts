@@ -2,7 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, inject, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Department } from '../../models/department.model';
-import { Subject } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
+import { ApiResponse } from '../../models/apiResponse.model';
 
 import { DepartmentService } from '../../services/department-service';
 import { SnackbarService } from '../../services/snackbar-service';
@@ -12,6 +13,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSelectChange } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+
 
 @Component({
   selector: 'app-select-dept',
@@ -52,8 +54,22 @@ export class SelectDept implements OnInit, OnDestroy {
   /** Get all departments */
   getDepartments(): void {
     this.isLoading = true;
-    this.departments = this._departmentService.getDepartments();
-    this.isLoading = false;
+    this._departmentService.getDepartments()
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Department[]>) => {
+        if (response.success) {
+          this.departments = response.data || [];
+        } else {
+          this._snackbarService.error(response.message);
+        }
+        this.isLoading = false;
+      },
+      error: (response) => {
+        this._snackbarService.error(response.error.message);
+        this.isLoading = false;
+      }
+    })
   }
 
   /** On department change, emit value */

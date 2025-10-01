@@ -6,11 +6,6 @@
         "Path": "TaskTracker.Server\\TaskTracker.csproj",
         "Action": "Start",
         "DebugTarget": "https"
-      },
-      {
-        "Path": "TaskTracker.client\\TaskTracker.client.csproj",
-        "Action": "Start",
-        "DebugTarget": "TaskTracker.client"
       }
     ]
   }

@@ -5,6 +5,7 @@ import { Department } from '../../../models/department.model';
 import { TruncatePipe } from '../../../pipes/truncate-pipe';
 import { Subject, takeUntil } from 'rxjs';
 import { RoleDialog } from '../../../dialogs/role-dialog/role-dialog';
+import { ApiResponse } from '../../../models/apiResponse.model';
 
 import { SnackbarService } from '../../../services/snackbar-service';
 import { DepartmentService } from '../../../services/department-service';
@@ -59,13 +60,13 @@ export class RoleList  implements OnInit, OnDestroy {
     this.getRoles();
     this.getDepartments();
 
-    // Sort immediately after component initialization
-    this.sortRoles();
+    // // Sort immediately after component initialization
+    // this.sortRoles();
 
-    this._roleService.rolesChanged$.subscribe(() => {
-      this.getRoles();
-      this.sortRoles();
-    });
+    // this._roleService.rolesChanged$.subscribe(() => {
+    //   this.getRoles();
+    //   this.sortRoles();
+    // });
   }
 
   /** Get all roles */
@@ -85,8 +86,22 @@ export class RoleList  implements OnInit, OnDestroy {
   /** Get all departments */
   getDepartments(): void {
     this.isLoading = true;
-    this.departments = this._departmentService.getDepartments();
-    this.isLoading = false;
+    this._departmentService.getDepartments()
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Department[]>) => {
+        if (response.success) {
+          this.departments = response.data || [];
+        } else {
+          this._snackbarService.error(response.message);
+        }
+        this.isLoading = false;
+      },
+      error: (response) => {
+        this._snackbarService.error(response.error.message);
+        this.isLoading = false;
+      }
+    });
 
     // Subscribe to the department notifications
     this._departmentService.departmentsChanged$

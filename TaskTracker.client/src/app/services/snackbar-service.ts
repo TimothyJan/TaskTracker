@@ -6,7 +6,7 @@ export class SnackbarService {
   private snackBar = inject(MatSnackBar);
 
   private defaultConfig: MatSnackBarConfig = {
-    duration: 5000,
+    duration: 3000,
     horizontalPosition: 'center',
     verticalPosition: 'bottom',
   };
@@ -32,7 +32,7 @@ export class SnackbarService {
     this.show(message, action, {
       ...this.defaultConfig,
       panelClass: ['error-snackbar'],
-      duration: 7000 // Longer duration for errors
+      duration: 5000 // Longer duration for errors
     });
   }
 

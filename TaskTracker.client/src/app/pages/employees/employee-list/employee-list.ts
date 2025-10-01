@@ -6,6 +6,7 @@ import { Department } from '../../../models/department.model';
 import { Role } from '../../../models/role.model';
 import { TruncatePipe } from '../../../pipes/truncate-pipe';
 import { Subject, takeUntil } from 'rxjs';
+import { ApiResponse } from '../../../models/apiResponse.model';
 
 import { SnackbarService } from '../../../services/snackbar-service';
 import { EmployeeService } from '../../../services/employee-service';
@@ -87,8 +88,22 @@ export class EmployeeList  implements OnInit, OnDestroy {
   /** Get all departments */
   getDepartments(): void {
     this.isLoading = true;
-    this.departments = this._departmentService.getDepartments();
-    this.isLoading = false;
+    this._departmentService.getDepartments()
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Department[]>) => {
+        if (response.success) {
+          this.departments = response.data || [];
+        } else {
+          this._snackbarService.error(response.message);
+        }
+        this.isLoading = false;
+      },
+      error: (response) => {
+        this._snackbarService.error(response.error.message);
+        this.isLoading = false;
+      }
+    });
 
     // Subscribe to the department notifications
     this._departmentService.departmentsChanged$

@@ -36,7 +36,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 export class DepartmentList implements OnInit, OnDestroy {
   private _snackbarService = inject(SnackbarService);
   private _departmentService = inject(DepartmentService);
-  private _cdr = inject(ChangeDetectorRef); // Add ChangeDetectorRef
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
   isLoading: boolean = false;
   departments: Department[] = [];
@@ -46,11 +46,9 @@ export class DepartmentList implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.getDepartments();
 
-    // Subscribe to the department notifications
     this._departmentService.departmentsChanged$
       .pipe(takeUntil(this.unsubscribe$))
       .subscribe(() => {
-        // Use setTimeout to avoid change detection issues
         setTimeout(() => this.getDepartments());
       });
   }
@@ -65,16 +63,19 @@ export class DepartmentList implements OnInit, OnDestroy {
         if (response.success) {
           this.departments = response.data || [];
         } else {
-          this._snackbarService.error(response.message);
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
         }
         this.isLoading = false;
-        this._cdr.detectChanges(); // Manually trigger change detection
+        this._cdr.detectChanges();
       },
       error: (response) => {
-        console.error('Error loading departments:', response);
-        this._snackbarService.error('Failed to load departments. Please check if the API server is running.');
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load departments.');
+        });
         this.isLoading = false;
-        this._cdr.detectChanges(); // Manually trigger change detection
+        this._cdr.detectChanges();
       }
     });
   }
@@ -83,7 +84,7 @@ export class DepartmentList implements OnInit, OnDestroy {
   onOpenEditDialog(departmentId: number): void {
     const dialogRef = this.dialog.open(DepartmentDialog, {
       width: '500px',
-      data: { departmentId }
+      data: { departmentId:departmentId }
     });
 
     // Subscribe to dialog close to handle updates
@@ -107,21 +108,26 @@ export class DepartmentList implements OnInit, OnDestroy {
         .subscribe({
           next: (response: ApiResponse) => {
             if (response.success) {
-              this._snackbarService.success("Department deleted.");
-              // Use setTimeout to avoid change detection issues
+              setTimeout(() => {
+                this._snackbarService.success("Department deleted.");
+              });
               setTimeout(() => {
                 this._departmentService.notifyDepartmentsChanged();
               });
             } else {
-              this._snackbarService.error(response.message);
+              setTimeout(() => {
+                this._snackbarService.error(response.message);
+              });
             }
             this.isLoading = false;
-            this._cdr.detectChanges(); // Manually trigger change detection
+            this._cdr.detectChanges();
           },
           error: (response) => {
-            this._snackbarService.error(response.error?.message || 'Failed to delete department');
+            setTimeout(() => {
+              this._snackbarService.error(response.error?.message || 'Failed to delete department');
+            });
             this.isLoading = false;
-            this._cdr.detectChanges(); // Manually trigger change detection
+            this._cdr.detectChanges();
           }
         });
     }

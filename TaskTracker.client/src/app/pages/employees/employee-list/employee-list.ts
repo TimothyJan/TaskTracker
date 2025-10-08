@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { Employee } from '../../../models/employee.model';
 import { EmployeeDialog } from '../../../dialogs/employee-dialog/employee-dialog';
 import { Department } from '../../../models/department.model';
@@ -46,6 +46,7 @@ export class EmployeeList  implements OnInit, OnDestroy {
   private _employeeService = inject(EmployeeService);
   private _departmentService = inject(DepartmentService);
   private _roleService = inject(RoleService);
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
   isLoading: boolean = false;
   departments: Department[] = [];
@@ -62,27 +63,53 @@ export class EmployeeList  implements OnInit, OnDestroy {
     this.getEmployees();
     this.getRoles();
     this.getDepartments();
-    this._employeeService.employeesChanged$.subscribe(() => {
-      this.getEmployees();
-      this.getRoles();
-      this.getDepartments();
-    });
+    // Subscribe to the employee notifications
+    this._employeeService.employeesChanged$
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        setTimeout(() => this.getEmployees());
+      });
+    // Subscribe to the role notifications
+    this._roleService.rolesChanged$
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        setTimeout(() => this.getRoles());
+      });
+    // Subscribe to the department notifications
+    this._departmentService.departmentsChanged$
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        setTimeout(() => this.getDepartments());
+      });
   }
 
   /** Get all employees */
   getEmployees(): void {
     this.isLoading = true;
-    this.employees = this._employeeService.getEmployees();
-    this.sortedEmployees = [...this.employees];
-    this.sortEmployees();
-    this.isLoading = false;
-
-    // Subscribe to the employee notifications
-    this._employeeService.employeesChanged$
-      .pipe(takeUntil(this.unsubscribe$))
-      .subscribe(() => {
-        this.getEmployees(); // Reload employees with updates
-      });
+    this._employeeService.getEmployees()
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Employee[]>) => {
+        if (response.success) {
+          this.employees = response.data || [];
+          this.sortedEmployees = [...this.employees];
+          this.sortEmployees();
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load employees');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
   }
 
   /** Get all departments */
@@ -95,36 +122,48 @@ export class EmployeeList  implements OnInit, OnDestroy {
         if (response.success) {
           this.departments = response.data || [];
         } else {
-          this._snackbarService.error(response.message);
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
         }
         this.isLoading = false;
+        this._cdr.detectChanges();
       },
       error: (response) => {
-        this._snackbarService.error(response.error.message);
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load roles');
+        });
         this.isLoading = false;
+        this._cdr.detectChanges();
       }
     });
-
-    // Subscribe to the department notifications
-    this._departmentService.departmentsChanged$
-      .pipe(takeUntil(this.unsubscribe$))
-      .subscribe(() => {
-        this.getDepartments(); // Reload departments with updates
-      });
   }
 
   /** Get all roles */
   getRoles(): void {
     this.isLoading = true;
-    this.roles = this._roleService.getRoles();
-    this.isLoading = false;
-
-    // Subscribe to the role notifications
-    this._roleService.rolesChanged$
-      .pipe(takeUntil(this.unsubscribe$))
-      .subscribe(() => {
-        this.getRoles(); // Reload roles with updates
-      });
+    this._roleService.getRoles()
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Role[]>) => {
+        if (response.success) {
+          this.roles = response.data || [];
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load roles');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
   }
 
   /** Sort employees based on current sortBy value */
@@ -187,10 +226,33 @@ export class EmployeeList  implements OnInit, OnDestroy {
     const confirmDelete = confirm('Are you sure you want to delete this employee?');
     if (confirmDelete) {
       this.isLoading = true;
-      this._employeeService.deleteEmployee(employeeId);
-      this.getEmployees();
-      this._snackbarService.success("Employee deleted.");
-      this.isLoading = false;
+      this._employeeService.deleteEmployee(employeeId)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse) => {
+          if (response.success) {
+            setTimeout(() => {
+              this._snackbarService.success("Employee deleted.");
+            });
+            setTimeout(() => {
+              this._employeeService.notifyEmployeesChanged();
+            });
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message);
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to delete employee.');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
     }
   }
 

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, inject, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, inject, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Department } from '../../models/department.model';
 import { Subject, takeUntil } from 'rxjs';
@@ -32,6 +32,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 export class SelectDept implements OnInit, OnDestroy {
   private _snackbarService = inject(SnackbarService);
   private _departmentService = inject(DepartmentService);
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
 
   @Input() departmentId: number | null = null;
@@ -49,6 +50,13 @@ export class SelectDept implements OnInit, OnDestroy {
     if (this.departmentId !== null) {
       this.selectedDepartmentId = this.departmentId;
     }
+
+    // Subscribe to the department notifications
+    this._departmentService.departmentsChanged$
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        setTimeout(() => this.getDepartments());
+      });
   }
 
   /** Get all departments */
@@ -61,15 +69,21 @@ export class SelectDept implements OnInit, OnDestroy {
         if (response.success) {
           this.departments = response.data || [];
         } else {
-          this._snackbarService.error(response.message);
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
         }
         this.isLoading = false;
+        this._cdr.detectChanges();
       },
       error: (response) => {
-        this._snackbarService.error(response.error.message);
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load roles');
+        });
         this.isLoading = false;
+        this._cdr.detectChanges();
       }
-    })
+    });
   }
 
   /** On department change, emit value */

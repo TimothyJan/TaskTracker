@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, Inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, Inject, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { Employee } from '../../models/employee.model';
 import { ProjectTaskModel } from '../../models/project-task.model';
+import { ApiResponse } from '../../models/apiResponse.model';
 
 import { SnackbarService } from '../../services/snackbar-service';
 import { EmployeeService } from '../../services/employee-service';
@@ -39,6 +40,7 @@ export class AssignEmp implements OnInit, OnDestroy {
   private _snackbarService = inject(SnackbarService);
   private _projectTaskService = inject(ProjectTaskService);
   private _employeeService = inject(EmployeeService);
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
 
   isLoading: boolean = false;
@@ -58,6 +60,12 @@ export class AssignEmp implements OnInit, OnDestroy {
     if (this.projectTask.assignedEmployeeIds) {
       this.selectedEmployees = [...this.projectTask.assignedEmployeeIds];
     }
+    // Subscribe to the employee notifications
+    this._employeeService.employeesChanged$
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        setTimeout(() => this.getEmployees());
+      });
   }
 
   /** Get Project Task by Id */
@@ -74,18 +82,31 @@ export class AssignEmp implements OnInit, OnDestroy {
       });
   }
 
-  /** Get Employees */
+  /** Get all employees */
   getEmployees(): void {
     this.isLoading = true;
-    this.employees = this._employeeService.getEmployees();
-    this.isLoading = false;
-
-    // Subscribe to the employee notifications
-    this._employeeService.employeesChanged$
-      .pipe(takeUntil(this.unsubscribe$))
-      .subscribe(() => {
-        this.getEmployees(); // Reload employees with updates
-      });
+    this._employeeService.getEmployees()
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Employee[]>) => {
+        if (response.success) {
+          this.employees = response.data || [];
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load employees');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
   }
 
   /** Check if employee is selected */

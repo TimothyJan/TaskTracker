@@ -1,10 +1,11 @@
-import { Component, Inject, inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, Inject, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 import { SelectDept } from '../../components/select-dept/select-dept';
 import { SelectRole } from '../../components/select-role/select-role';
 import { Employee } from '../../models/employee.model';
+import { ApiResponse } from '../../models/apiResponse.model';
 
 import { SnackbarService } from '../../services/snackbar-service';
 import { EmployeeService } from '../../services/employee-service';
@@ -36,6 +37,7 @@ import { MatInputModule } from '@angular/material/input';
 export class EmployeeDialog implements OnInit, OnDestroy {
   private _snackbarService = inject(SnackbarService);
   private _employeeService = inject(EmployeeService);
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
 
   isLoading: boolean = false;
@@ -64,17 +66,33 @@ export class EmployeeDialog implements OnInit, OnDestroy {
 
   setEmployeeFormValues(): void {
     this.isLoading = true;
-    const employee = this._employeeService.getEmployeeById(this.data.employeeId!);
-    if (employee) {
-      this.form.patchValue({
-        id: employee.id,
-        name_: employee.name_,
-        salary: employee.salary,
-        departmentId: employee.departmentId,
-        roleId: employee.roleId
-      });
-    }
-    this.isLoading = false;
+    this._employeeService.getEmployeeById(this.data.employeeId!)
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Employee>) => {
+        if (response.success) {
+          const employee = response.data
+          this.form.patchValue({
+            id: employee?.id,
+            name_: employee?.name_,
+            salary: employee?.salary,
+            departmentId: employee?.departmentId,
+            roleId: employee?.roleId
+          });
+        } else {
+          this._snackbarService.error(response.message);
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load roles');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
   }
 
   get errorControlsName() {
@@ -146,39 +164,95 @@ export class EmployeeDialog implements OnInit, OnDestroy {
   }
 
   createEmployee(): void {
-    this.isLoading = true;
-    const formValue = this.form.getRawValue();
-    const newEmployee: Employee = {
-      id: formValue.id,
-      name_: formValue.name_.trim(),
-      salary: parseFloat(parseFloat(formValue.salary).toFixed(2)),
-      departmentId: formValue.departmentId,
-      roleId: formValue.roleId
-    };
+    if (this.form.valid) {
+      this.isLoading = true;
+      const formValue = this.form.getRawValue();
+      const newEmployee: Employee = {
+        id: formValue.id,
+        name_: formValue.name_.trim(),
+        salary: parseFloat(parseFloat(formValue.salary).toFixed(2)),
+        departmentId: formValue.departmentId,
+        roleId: formValue.roleId
+      };
 
-    this._employeeService.addEmployee(newEmployee);
-    this._employeeService.notifyEmployeesChanged();
-    this._snackbarService.success("Employee created.");
-    this.dialogRef.close(this.data.employeeId);
-    this.isLoading = false;
+      this._employeeService.createEmployee(newEmployee)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse<Employee>) => {
+          if (response.success) {
+            setTimeout(() => {
+              this._employeeService.notifyEmployeesChanged();
+            });
+            setTimeout(() => {
+              this._snackbarService.success(response.message || "Employee created successfully");
+            });
+            this.dialogRef.close(this.data.employeeId);
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message || "Failed to create employee.");
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to create employee.');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
+    } else {
+      this._snackbarService.error("Failed to create employee.");
+      this.isLoading = false;
+    }
   }
 
   updateEmployee(): void {
-    this.isLoading = true;
-    const formValue = this.form.getRawValue();
-    const updatedEmployee: Employee = {
-      id: formValue.id,
-      name_: formValue.name_.trim(),
-      salary: parseFloat(parseFloat(formValue.salary).toFixed(2)),
-      departmentId: formValue.departmentId,
-      roleId: formValue.roleId
-    };
+    if (this.form.valid) {
+      this.isLoading = true;
+      const formValue = this.form.getRawValue();
+      const updatedEmployee: Employee = {
+        id: formValue.id,
+        name_: formValue.name_.trim(),
+        salary: parseFloat(parseFloat(formValue.salary).toFixed(2)),
+        departmentId: formValue.departmentId,
+        roleId: formValue.roleId
+      };
 
-    this._employeeService.updateEmployee(updatedEmployee);
-    this._employeeService.notifyEmployeesChanged();
-    this._snackbarService.success("Employee saved.");
-    this.dialogRef.close(this.data.employeeId);
-    this.isLoading = false;
+      this._employeeService.updateEmployee(updatedEmployee)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse) => {
+          if (response.success) {
+            setTimeout(() => {
+              this._employeeService.notifyEmployeesChanged();
+            });
+            setTimeout(() => {
+              this._snackbarService.success(response.message);
+            });
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message  || "Failed to update employee.");
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to update employee.');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
+      this.dialogRef.close(this.data.employeeId);
+    } else {
+      this._snackbarService.error("Failed to update employee.");
+      this.isLoading = false;
+    }
   }
 
   ngOnDestroy(): void {

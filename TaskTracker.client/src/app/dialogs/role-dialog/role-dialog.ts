@@ -1,9 +1,10 @@
-import { Component, Inject, inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, Inject, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 import { SelectDept } from '../../components/select-dept/select-dept';
 import { Role } from '../../models/role.model';
+import { ApiResponse } from '../../models/apiResponse.model';
 
 import { SnackbarService } from '../../services/snackbar-service';
 import { RoleService } from '../../services/role-service';
@@ -34,6 +35,7 @@ import { MatInputModule } from '@angular/material/input';
 export class RoleDialog implements OnInit, OnDestroy {
   private _snackbarService = inject(SnackbarService);
   private _roleService = inject(RoleService);
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
 
   isLoading: boolean = false;
@@ -54,15 +56,34 @@ export class RoleDialog implements OnInit, OnDestroy {
     }
   }
 
+  /** Set form using getRoleById */
   setRoleFormValues(): void {
     this.isLoading = true;
-    const role = this._roleService.getRoleById(this.data.roleId!);
-    this.form.patchValue({
-      id: role?.id,
-      name_: role?.name_,
-      departmentId: role?.departmentId
-    })
-    this.isLoading = false;
+    this._roleService.getRoleById(this.data.roleId!)
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Role>) => {
+        if (response.success) {
+          const role = response.data
+          this.form.patchValue({
+            id: role?.id,
+            name_: role?.name_,
+            departmentId: role?.departmentId
+          })
+        } else {
+          this._snackbarService.error(response.message);
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load roles');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
   }
 
   get errorControls() {
@@ -105,19 +126,37 @@ export class RoleDialog implements OnInit, OnDestroy {
         name_: formValue.name_.trim(),
         departmentId: formValue.departmentId
       }
-      if(!this._roleService.checkDuplicates(newRole)) {
-        this._roleService.createRole(newRole);
-        this._roleService.notifyRolesChanged();
-        this._snackbarService.success("Role created.");
-        this.dialogRef.close(this.data.roleId);
-      }
-      else {
-        this._snackbarService.error("Role already exists.");
-      }
-      this.isLoading = false;
-    }
-    else {
-      this._snackbarService.error("Role failed to be created.");
+
+      this._roleService.createRole(newRole)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse<Role>) => {
+          if (response.success) {
+            setTimeout(() => {
+              this._roleService.notifyRolesChanged();
+            });
+            setTimeout(() => {
+              this._snackbarService.success(response.message || "Role created successfully");
+            });
+            this.dialogRef.close(this.data.roleId);
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message || "Failed to create role.");
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to create role.');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
+    } else {
+      this._snackbarService.error("Failed to create role.");
       this.isLoading = false;
     }
   }
@@ -131,18 +170,38 @@ export class RoleDialog implements OnInit, OnDestroy {
         name_: formValue.name_.trim(),
         departmentId: formValue.departmentId
       }
-      if(!this._roleService.checkDuplicates(updatedRole, updatedRole.id)) {
-        this._roleService.updateRole(updatedRole);
-        this._roleService.notifyRolesChanged();
-        this._snackbarService.success("Role saved.");
-        this.dialogRef.close(this.data.roleId);
-      }
-      else {
-        this._snackbarService.error("Role already exists.");
-      }
-      this.isLoading = false;
+
+      this._roleService.updateRole(updatedRole)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse) => {
+          if (response.success) {
+            setTimeout(() => {
+              this._roleService.notifyRolesChanged();
+            });
+            setTimeout(() => {
+              this._snackbarService.success(response.message);
+            });
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message  || "Failed to update role.");
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to update role.');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
+      this.dialogRef.close(this.data.roleId);
     } else {
-      this._snackbarService.error("Invalid role values");
+      this._snackbarService.error("Failed to update role.");
+      this.isLoading = false;
     }
   }
 

@@ -33,7 +33,7 @@ import { MatInputModule } from '@angular/material/input';
 export class DepartmentDialog implements OnInit, OnDestroy {
   private _snackbarService = inject(SnackbarService);
   private _departmentService = inject(DepartmentService);
-  private _cdr = inject(ChangeDetectorRef); // Add ChangeDetectorRef
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
 
   isLoading: boolean = false;
@@ -44,11 +44,11 @@ export class DepartmentDialog implements OnInit, OnDestroy {
 
   constructor(
     private dialogRef: MatDialogRef<DepartmentDialog>,
-    @Inject(MAT_DIALOG_DATA) public data: { id?: number },
+    @Inject(MAT_DIALOG_DATA) public data: { departmentId?: number },
   ) { }
 
   ngOnInit() {
-    if(this.data.id !== undefined) {
+    if(this.data.departmentId !== undefined) {
       this.setDepartmentFormValues();
     }
   }
@@ -56,7 +56,7 @@ export class DepartmentDialog implements OnInit, OnDestroy {
   /** Set form using getDepartmentById */
   setDepartmentFormValues(): void {
     this.isLoading = true;
-    this._departmentService.getDepartmentById(this.data.id!)
+    this._departmentService.getDepartmentById(this.data.departmentId!)
     .pipe(takeUntil(this.unsubscribe$))
     .subscribe({
       next: (response: ApiResponse<Department>) => {
@@ -70,12 +70,14 @@ export class DepartmentDialog implements OnInit, OnDestroy {
           this._snackbarService.error(response.message);
         }
         this.isLoading = false;
-        this._cdr.detectChanges(); // Manually trigger change detection
+        this._cdr.detectChanges();
       },
       error: (response) => {
-        this._snackbarService.error(response.error?.message || 'Failed to load department');
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load department.');
+        });
         this.isLoading = false;
-        this._cdr.detectChanges(); // Manually trigger change detection
+        this._cdr.detectChanges();
       }
     })
   }
@@ -83,9 +85,9 @@ export class DepartmentDialog implements OnInit, OnDestroy {
   get errorControls() {
     const control = this.form.get('name_');
     if (control?.errors && control.touched) {
-      if (control.errors['required']) return 'Department name is required';
-      if (control.errors['minlength']) return 'Department name must be at least 1 character';
-      if (control.errors['maxlength']) return 'Department name must be ≤ 100 characters';
+      if (control.errors['required']) return 'Department name is required.';
+      if (control.errors['minlength']) return 'Department name must be at least 1 character.';
+      if (control.errors['maxlength']) return 'Department name must be ≤ 100 characters.';
     }
     return null;
   }
@@ -99,11 +101,11 @@ export class DepartmentDialog implements OnInit, OnDestroy {
   confirm(): void {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
-      this._snackbarService.warning("Please fix validation errors");
+      this._snackbarService.warning("Please fix validation errors.");
       return;
     }
 
-    if(this.data.id === undefined) {
+    if(this.data.departmentId === undefined) {
       this.createDepartment();
     } else {
       this.updateDepartment();
@@ -111,61 +113,91 @@ export class DepartmentDialog implements OnInit, OnDestroy {
   }
 
   createDepartment() {
-    this.isLoading = true;
-    const formValue = this.form.getRawValue();
-    const newDepartment: Department = {
-      id: 0, // Let the API generate the ID
-      name_: formValue.name_.trim()
-    }
-
-    this._departmentService.createDepartment(newDepartment)
-    .pipe(takeUntil(this.unsubscribe$))
-    .subscribe({
-      next: (response: ApiResponse<Department>) => {
-        if (response.success) {
-          this._snackbarService.success(response.message || "Department created successfully");
-          this.dialogRef.close(true); // Pass true to indicate success
-        } else {
-          this._snackbarService.error(response.message || "Failed to create department");
-        }
-        this.isLoading = false;
-        this._cdr.detectChanges(); // Manually trigger change detection
-      },
-      error: (response) => {
-        this._snackbarService.error(response.error?.message || 'Failed to create department');
-        this.isLoading = false;
-        this._cdr.detectChanges(); // Manually trigger change detection
+    if (this.form.valid) {
+      this.isLoading = true;
+      const formValue = this.form.getRawValue();
+      const newDepartment: Department = {
+        id: 0, // Let the API generate the ID
+        name_: formValue.name_.trim()
       }
-    });
+
+      this._departmentService.createDepartment(newDepartment)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse<Department>) => {
+          if (response.success) {
+            setTimeout(() => {
+              this._departmentService.notifyDepartmentsChanged();
+            });
+            setTimeout(() => {
+              this._snackbarService.success(response.message || "Department created successfully.");
+            });
+            this.dialogRef.close(true);
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message || "Failed to create department.");
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to create department.');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
+    } else {
+      this._snackbarService.error("Role failed to be created.");
+      this.isLoading = false;
+    }
   }
 
   updateDepartment(): void {
-    this.isLoading = true;
-    const formValue = this.form.getRawValue();
-    const updatedDepartment: Department = {
-      id: formValue.id,
-      name_: formValue.name_.trim()
+    if (this.form.valid) {
+      this.isLoading = true;
+      const formValue = this.form.getRawValue();
+      const updatedDepartment: Department = {
+        id: formValue.id,
+        name_: formValue.name_.trim()
+      }
+
+      this._departmentService.updateDepartment(updatedDepartment)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse<Department>) => {
+          if (response.success) {
+            setTimeout(() => {
+              this._departmentService.notifyDepartmentsChanged();
+            });
+            setTimeout(() => {
+              this._snackbarService.success(response.message || "Department updated successfully.");
+            });
+            this.dialogRef.close(true);
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message || "Failed to update department.");
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to update department.');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
+      this.dialogRef.close(this.data.departmentId)
+    } else {
+      this._snackbarService.error("Failed to update department.");
+      this.isLoading = false;
     }
 
-    this._departmentService.updateDepartment(updatedDepartment)
-    .pipe(takeUntil(this.unsubscribe$))
-    .subscribe({
-      next: (response: ApiResponse<Department>) => {
-        if (response.success) {
-          this._snackbarService.success(response.message || "Department updated successfully");
-          this.dialogRef.close(true); // Pass true to indicate success
-        } else {
-          this._snackbarService.error(response.message || "Failed to update department");
-        }
-        this.isLoading = false;
-        this._cdr.detectChanges(); // Manually trigger change detection
-      },
-      error: (response) => {
-        this._snackbarService.error(response.error?.message || 'Failed to update department');
-        this.isLoading = false;
-        this._cdr.detectChanges(); // Manually trigger change detection
-      }
-    });
   }
 
   ngOnDestroy(): void {

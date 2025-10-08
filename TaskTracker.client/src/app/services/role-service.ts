@@ -46,7 +46,7 @@ export class RoleService {
   }
 
   /** Get Roles based on Department Id */
-  getRolesFromDepartmentId(departmentId: number): Observable<ApiResponse> {
-    return this.http.get<ApiResponse>(`${this.apiUrl}/Role/department/${departmentId}`);
+  getRolesFromDepartmentId(departmentId: number): Observable<ApiResponse<Role[]>> {
+    return this.http.get<ApiResponse>(`${this.apiUrl}/department/${departmentId}`);
   }
 }

@@ -12,13 +12,15 @@
             (departmentChanged)="handleDepartmentChange($event)">
           </app-select-dept>
         </div>
-        <div class="flex-item">
-          <app-select-role
-            [departmentId]="form.get('departmentId')?.value"
-            [roleId]="form.get('roleId')?.value"
-            (roleChanged)="handleRoleChange($event)">
-          </app-select-role>
-        </div>
+        @if(form.get('departmentId')?.value != -1) {
+          <div class="flex-item">
+            <app-select-role
+              [departmentId]="form.get('departmentId')?.value"
+              [roleId]="form.get('roleId')?.value"
+              (roleChanged)="handleRoleChange($event)">
+            </app-select-role>
+          </div>
+        }
         <div class="flex-item">
           <label>Employee Name: </label>
           <mat-form-field appearance="outline">

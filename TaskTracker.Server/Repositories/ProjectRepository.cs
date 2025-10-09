@@ -161,5 +161,14 @@ namespace TaskTracker.Repositories
                 .OrderBy(p => p.Name_)
                 .ToListAsync();
         }
+
+        public async Task<int[]> GetProjectIdsAsync()
+        {
+            return await _context.Projects
+                .AsNoTracking()
+                .OrderBy(p => p.Id)
+                .Select(p => p.Id)
+                .ToArrayAsync();
+        }
     }
 }

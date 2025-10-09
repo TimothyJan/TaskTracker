@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, Inject, inject, Input, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, Inject, inject, Input, OnDestroy, OnInit } from '@angular/core';
 import { FormGroup, FormControl, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 import { DatePicker } from '../../components/date-picker/date-picker';
 import { SelectStatus } from '../../components/select-status/select-status';
 import { ProjectTaskModel } from '../../models/project-task.model';
+import { ApiResponse } from '../../models/apiResponse.model';
 
 import { SnackbarService } from '../../services/snackbar-service';
 import { ProjectTaskService } from '../../services/project-task-service';
@@ -36,15 +37,16 @@ import { MatInputModule } from '@angular/material/input';
 export class ProjectTaskDialog implements OnInit, OnDestroy {
   private _snackbarService = inject(SnackbarService);
   private _projectTaskService = inject(ProjectTaskService);
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
 
   isLoading: boolean = false;
   form: FormGroup = new FormGroup({
     id: new FormControl(0, [Validators.required, Validators.pattern(/^\d+$/)]),
     projectId: new FormControl(0, [Validators.required, Validators.pattern(/^\d+$/)]),
-    name_: new FormControl("", [Validators.required, Validators.minLength(1), Validators.maxLength(100)]),
-    description_: new FormControl("", [Validators.required, Validators.minLength(1), Validators.maxLength(200)]),
-    status_: new FormControl("", [Validators.required, Validators.minLength(1), Validators.maxLength(50)]),
+    name: new FormControl("", [Validators.required, Validators.minLength(1), Validators.maxLength(100)]),
+    description: new FormControl("", [Validators.required, Validators.minLength(1), Validators.maxLength(200)]),
+    status: new FormControl("", [Validators.required, Validators.minLength(1), Validators.maxLength(50)]),
     startDate: new FormControl(""),
     dueDate: new FormControl(""),
     assignedEmployeeIds: new FormControl([]),
@@ -52,7 +54,7 @@ export class ProjectTaskDialog implements OnInit, OnDestroy {
 
   constructor(
     private dialogRef: MatDialogRef<ProjectTaskDialog>,
-    @Inject(MAT_DIALOG_DATA) public data: { projectId?: number, projectTaskId?: number },
+    @Inject(MAT_DIALOG_DATA) public data: { projectId: number, projectTaskId?: number },
   ) {}
 
   ngOnInit() {
@@ -72,18 +74,40 @@ export class ProjectTaskDialog implements OnInit, OnDestroy {
   /** Set form using getProjectTaskById */
   setProjectTaskFormValues(): void {
     this.isLoading = true;
-    const formValues = this._projectTaskService.getProjectTaskById(this.data.projectTaskId!);
-    this.form.patchValue({
-      id: formValues.id,
-      projectId: formValues.projectId,
-      name_: formValues.name_,
-      description_: formValues.description_,
-      status_: formValues.status_,
-      startDate: formValues.startDate,
-      dueDate: formValues.dueDate,
-      assignedEmployeeIds: formValues.assignedEmployeeIds,
-    })
-    this.isLoading = false;
+    if (this.data.projectTaskId) {
+      this._projectTaskService.getProjectTaskById(this.data.projectTaskId)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse<ProjectTaskModel>) => {
+          if (response.success) {
+            const projectTask = response.data || new ProjectTaskModel(0, 0, "", "", "Not Started", new Date(), new Date(), []);
+            this.form.patchValue({
+              id: projectTask.id,
+              projectId: this.data.projectId,
+              name: projectTask.name,
+              description: projectTask.description,
+              status: projectTask.status,
+              startDate: projectTask.startDate,
+              dueDate: projectTask.dueDate,
+              assignedEmployeeIds: projectTask.assignedEmployeeIds,
+            })
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message);
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to load employees');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
+    }
   }
 
   get errorControlsName() {
@@ -107,8 +131,8 @@ export class ProjectTaskDialog implements OnInit, OnDestroy {
   }
 
   /** Handles status_ change from status_ selector component and assigns status_ to form */
-  handleStatusChange(status_: string): void {
-    this.form.patchValue({ status_: status_ });
+  handleStatusChange(status: string): void {
+    this.form.patchValue({ status: status });
   }
 
   /** Handles startDate change from date-selector component and assigns date value to form */
@@ -129,7 +153,6 @@ export class ProjectTaskDialog implements OnInit, OnDestroy {
   /** Confirm save and close modal */
   confirm() {
     this.form.markAllAsTouched();
-
     if(this.form.valid) {
       if (this.data.projectTaskId === undefined) {
         this.createProjectTask();
@@ -143,41 +166,100 @@ export class ProjectTaskDialog implements OnInit, OnDestroy {
   }
 
   createProjectTask(): void {
-    this.isLoading = true;
-    const formValue = this.form.getRawValue();
-    const newProjectTask: ProjectTaskModel = {
-      id: formValue.id,
-      projectId: formValue.projectId,
-      name_: formValue.name_.trim(),
-      description_: formValue.description_.trim(),
-      status_: formValue.status_,
-      startDate: formValue.startDate,
-      dueDate: formValue.dueDate,
-      assignedEmployeeIds: formValue.assignedEmployeeIds
-    };
-    this._projectTaskService.createProjectTask(newProjectTask);
-    this._projectTaskService.notifyProjectTasksChanged();
-    this._snackbarService.success("Project task created.");
-    this.isLoading = false;
+    if (this.form.valid) {
+      this.isLoading = true;
+      const formValue = this.form.getRawValue();
+      const newProjectTask: ProjectTaskModel = {
+        id: formValue.id,
+        projectId: this.data.projectId,
+        name: formValue.name.trim(),
+        description: formValue.description.trim(),
+        status: formValue.status,
+        startDate: formValue.startDate,
+        dueDate: formValue.dueDate,
+        assignedEmployeeIds: formValue.assignedEmployeeIds
+      };
+      this._projectTaskService.createProjectTask(newProjectTask)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse<ProjectTaskModel>) => {
+          if (response.success) {
+            setTimeout(() => {
+              this._projectTaskService.notifyProjectTasksChanged();
+            });
+            setTimeout(() => {
+              this._snackbarService.success(response.message || "Project Task created successfully.");
+            });
+            this.dialogRef.close(this.data.projectId);
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message || "Failed to create project task.");
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to create project task.');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
+      this.dialogRef.close(this.data.projectTaskId);
+    } else {
+      this._snackbarService.error("Failed to create project task.");
+      this.isLoading = false;
+    }
   }
 
   updateProjectTask(): void {
-    this.isLoading = true;
-    const formValue = this.form.getRawValue();
-    const updatedProjectTask: ProjectTaskModel = {
-      id: formValue.id,
-      projectId: formValue.projectId,
-      name_: formValue.name_.trim(),
-      description_: formValue.description_.trim(),
-      status_: formValue.status_,
-      startDate: formValue.startDate,
-      dueDate: formValue.dueDate,
-      assignedEmployeeIds: formValue.assignedEmployeeIds
-    };
-    this._projectTaskService.updateProjectTask(updatedProjectTask);
-    this._projectTaskService.notifyProjectTasksChanged();
-    this._snackbarService.success("Project task updated.");
-    this.isLoading = false;
+    if (this.form.valid) {
+      this.isLoading = true;
+      const formValue = this.form.getRawValue();
+      const updatedProjectTask: ProjectTaskModel = {
+        id: formValue.id,
+        projectId: this.data.projectId,
+        name: formValue.name.trim(),
+        description: formValue.description.trim(),
+        status: formValue.status,
+        startDate: formValue.startDate,
+        dueDate: formValue.dueDate,
+        assignedEmployeeIds: formValue.assignedEmployeeIds
+      };
+      this._projectTaskService.updateProjectTask(updatedProjectTask)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse) => {
+          if (response.success) {
+            setTimeout(() => {
+              this._projectTaskService.notifyProjectTasksChanged();
+            });
+            setTimeout(() => {
+              this._snackbarService.success(response.message);
+            });
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message  || "Failed to update project task.");
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to update project task.');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
+      this.dialogRef.close(this.data.projectId);
+    } else {
+      this._snackbarService.error("Failed to update project task.");
+      this.isLoading = false;
+    }
   }
 
   ngOnDestroy(): void {

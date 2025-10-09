@@ -1,8 +1,9 @@
-import { Component, inject, Inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject, Inject, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, FormsModule, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 import { Department } from '../../models/department.model';
+import { ApiResponse } from '../../models/apiResponse.model';
 
 import { SnackbarService } from '../../services/snackbar-service';
 import { DepartmentService } from '../../services/department-service';
@@ -32,6 +33,7 @@ import { MatInputModule } from '@angular/material/input';
 export class DepartmentDialog implements OnInit, OnDestroy {
   private _snackbarService = inject(SnackbarService);
   private _departmentService = inject(DepartmentService);
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
 
   isLoading: boolean = false;
@@ -42,11 +44,11 @@ export class DepartmentDialog implements OnInit, OnDestroy {
 
   constructor(
     private dialogRef: MatDialogRef<DepartmentDialog>,
-    @Inject(MAT_DIALOG_DATA) public data: { id?: number },
+    @Inject(MAT_DIALOG_DATA) public data: { departmentId?: number },
   ) { }
 
   ngOnInit() {
-    if(this.data.id !== undefined) {
+    if(this.data.departmentId !== undefined) {
       this.setDepartmentFormValues();
     }
   }
@@ -54,20 +56,38 @@ export class DepartmentDialog implements OnInit, OnDestroy {
   /** Set form using getDepartmentById */
   setDepartmentFormValues(): void {
     this.isLoading = true;
-    const dept = this._departmentService.getDepartmentById(this.data.id!);
-    this.form.patchValue({
-      id: dept?.id,
-      name_: dept?.name_
+    this._departmentService.getDepartmentById(this.data.departmentId!)
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Department>) => {
+        if (response.success) {
+          const dept = response.data;
+          this.form.patchValue({
+            id: dept?.id,
+            name_: dept?.name_
+          })
+        } else {
+          this._snackbarService.error(response.message);
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load department.');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
     })
-    this.isLoading = false;
   }
 
   get errorControls() {
     const control = this.form.get('name_');
-    if (control?.errors && control.touched) { // Add touched check
-      if (control.errors['required']) return 'Department name_ is required';
-      if (control.errors['minlength']) return 'Department name_ must be at least 1 characters'; // Fixed message
-      if (control.errors['maxlength']) return 'Department name_ must be ≤ 100 characters';
+    if (control?.errors && control.touched) {
+      if (control.errors['required']) return 'Department name is required.';
+      if (control.errors['minlength']) return 'Department name must be at least 1 character.';
+      if (control.errors['maxlength']) return 'Department name must be ≤ 100 characters.';
     }
     return null;
   }
@@ -80,7 +100,12 @@ export class DepartmentDialog implements OnInit, OnDestroy {
   /** Confirm create or update and close dialog*/
   confirm(): void {
     this.form.markAllAsTouched();
-    if(this.data.id === undefined) {
+    if (this.form.invalid) {
+      this._snackbarService.warning("Please fix validation errors.");
+      return;
+    }
+
+    if(this.data.departmentId === undefined) {
       this.createDepartment();
     } else {
       this.updateDepartment();
@@ -92,45 +117,88 @@ export class DepartmentDialog implements OnInit, OnDestroy {
       this.isLoading = true;
       const formValue = this.form.getRawValue();
       const newDepartment: Department = {
-        id: formValue.id,
+        id: 0, // Let the API generate the ID
         name_: formValue.name_.trim()
       }
-      if (!this._departmentService.checkDuplicates(newDepartment.name_)) {
-        this._departmentService.createDepartment(newDepartment);
-        this._departmentService.notifyDepartmentsChanged();
-        this._snackbarService.success("Department created.");
-        this.dialogRef.close(this.data.id);
-        this.isLoading = false;
-      } else {
-        this._snackbarService.error("Department already exists.");
-        this.isLoading = false;
-      }
+
+      this._departmentService.createDepartment(newDepartment)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse<Department>) => {
+          if (response.success) {
+            setTimeout(() => {
+              this._departmentService.notifyDepartmentsChanged();
+            });
+            setTimeout(() => {
+              this._snackbarService.success(response.message || "Department created successfully.");
+            });
+            this.dialogRef.close(true);
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message || "Failed to create department.");
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to create department.');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
+      this.dialogRef.close(this.data.departmentId);
     } else {
-      this._snackbarService.warning("Department failed to be created.");
+      this._snackbarService.error("Role failed to be created.");
+      this.isLoading = false;
     }
   }
 
   updateDepartment(): void {
-    if(this.form.valid) {
+    if (this.form.valid) {
       this.isLoading = true;
       const formValue = this.form.getRawValue();
       const updatedDepartment: Department = {
         id: formValue.id,
         name_: formValue.name_.trim()
       }
-      if (!this._departmentService.checkDuplicates(updatedDepartment.name_)) {
-        this._departmentService.updateDepartment(updatedDepartment);
-        this._departmentService.notifyDepartmentsChanged();
-        this._snackbarService.success("Department saved.");
-        this.dialogRef.close(this.data.id);
-        this.isLoading = false;
-      } else {
-        this._snackbarService.error("Department already exists.");
-        this.isLoading = false;
-      }
+
+      this._departmentService.updateDepartment(updatedDepartment)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse<Department>) => {
+          if (response.success) {
+            setTimeout(() => {
+              this._departmentService.notifyDepartmentsChanged();
+            });
+            setTimeout(() => {
+              this._snackbarService.success(response.message || "Department updated successfully.");
+            });
+            this.dialogRef.close(true);
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message || "Failed to update department.");
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to update department.');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
+      this.dialogRef.close(this.data.departmentId)
     } else {
-      this._snackbarService.error("Invalid department values");
+      this._snackbarService.error("Failed to update department.");
+      this.isLoading = false;
     }
+
   }
 
   ngOnDestroy(): void {

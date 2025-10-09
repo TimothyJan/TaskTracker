@@ -1,10 +1,11 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Role } from '../../../models/role.model';
 import { Department } from '../../../models/department.model';
 import { TruncatePipe } from '../../../pipes/truncate-pipe';
 import { Subject, takeUntil } from 'rxjs';
 import { RoleDialog } from '../../../dialogs/role-dialog/role-dialog';
+import { ApiResponse } from '../../../models/apiResponse.model';
 
 import { SnackbarService } from '../../../services/snackbar-service';
 import { DepartmentService } from '../../../services/department-service';
@@ -42,6 +43,7 @@ export class RoleList  implements OnInit, OnDestroy {
   private _snackbarService = inject(SnackbarService);
   private _departmentService = inject(DepartmentService);
   private _roleService = inject(RoleService);
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
   isLoading: boolean = false;
   roles: Role[] = [];
@@ -59,41 +61,71 @@ export class RoleList  implements OnInit, OnDestroy {
     this.getRoles();
     this.getDepartments();
 
-    // Sort immediately after component initialization
-    this.sortRoles();
-
-    this._roleService.rolesChanged$.subscribe(() => {
-      this.getRoles();
-      this.sortRoles();
-    });
+    this._roleService.rolesChanged$
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        setTimeout(() => this.getRoles());
+      });
+    this._departmentService.departmentsChanged$
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        setTimeout(() => this.getDepartments())
+      });
   }
 
   /** Get all roles */
   getRoles(): void {
     this.isLoading = true;
-    this.roles = this._roleService.getRoles();
-    this.isLoading = false;
-
-    // Subscribe to the role notifications
-    this._roleService.rolesChanged$
-      .pipe(takeUntil(this.unsubscribe$))
-      .subscribe(() => {
-        this.getRoles(); // Reload roles with updates
-      });
+    this._roleService.getRoles()
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Role[]>) => {
+        if (response.success) {
+          this.roles = response.data || [];
+          this.sortRoles();
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load roles.');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
   }
 
   /** Get all departments */
   getDepartments(): void {
     this.isLoading = true;
-    this.departments = this._departmentService.getDepartments();
-    this.isLoading = false;
-
-    // Subscribe to the department notifications
-    this._departmentService.departmentsChanged$
-      .pipe(takeUntil(this.unsubscribe$))
-      .subscribe(() => {
-        this.getDepartments(); // Reload departments with updates
-      });
+    this._departmentService.getDepartments()
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Department[]>) => {
+        if (response.success) {
+          this.departments = response.data || [];
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load roles.');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
   }
 
   /** Sort roles based on current sortBy value */
@@ -132,9 +164,18 @@ export class RoleList  implements OnInit, OnDestroy {
 
   /** Open Role Edit dialog */
   onOpenEditDialog(roleId: number): void {
-    this.dialog.open(RoleDialog, {
+    const dialogRef = this.dialog.open(RoleDialog, {
       width: '500px',
       data: { roleId: roleId }
+    });
+
+    // Subscribe to dialog close to handle updates
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        setTimeout(() => {
+          this._roleService.notifyRolesChanged();
+        });
+      }
     });
   }
 
@@ -143,10 +184,33 @@ export class RoleList  implements OnInit, OnDestroy {
     const confirmDelete = confirm('Are you sure you want to delete this role?');
     if (confirmDelete) {
       this.isLoading = true;
-      this._roleService.deleteRole(roleId);
-      this.getRoles();
-      this._snackbarService.success("Role deleted.");
-      this.isLoading = false;
+      this._roleService.deleteRole(roleId)
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe({
+          next: (response: ApiResponse) => {
+            if (response.success) {
+              setTimeout(() => {
+                this._snackbarService.success("Role deleted.");
+              });
+              setTimeout(() => {
+                this._roleService.notifyRolesChanged();
+              });
+            } else {
+              setTimeout(() => {
+                this._snackbarService.error(response.message);
+              });
+            }
+            this.isLoading = false;
+            this._cdr.detectChanges();
+          },
+          error: (response) => {
+            setTimeout(() => {
+              this._snackbarService.error(response.error?.message || 'Failed to delete role.');
+            });
+            this.isLoading = false;
+            this._cdr.detectChanges();
+          }
+        });
     }
   }
 

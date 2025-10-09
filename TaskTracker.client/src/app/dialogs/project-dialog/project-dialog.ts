@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, Inject, inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, Inject, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 import { DatePicker } from '../../components/date-picker/date-picker';
 import { SelectStatus } from '../../components/select-status/select-status';
 import { ProjectModel } from '../../models/project.model';
+import { ApiResponse } from '../../models/apiResponse.model';
 
 import { SnackbarService } from '../../services/snackbar-service';
 import { ProjectService } from '../../services/project-service';
@@ -36,6 +37,7 @@ import { MatInputModule } from '@angular/material/input';
 export class ProjectDialog implements OnInit, OnDestroy {
   private _snackbarService = inject(SnackbarService);
   private _projectService = inject(ProjectService);
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
 
   isLoading: boolean = false;
@@ -56,29 +58,52 @@ export class ProjectDialog implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Edit Project, else create project
     if(this.data.projectId !== undefined) {
-      this.getProject();
+      this.setProjectFormValues();
     }
+
+    // Subscribe to the employee notifications
+    this._projectService.projectsChanged$
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        setTimeout(() => this.setProjectFormValues());
+      });
   }
 
   /** Get Project */
-  getProject(): void {
+  setProjectFormValues(): void {
     this.isLoading = true;
-    const project = this._projectService.getProjectById(this.data.projectId!);
-    if (!project) {
-      console.log("Project not found.");
-      this.dialogRef.close(null);
-      return;
+    if (this.data.projectId) {
+      this._projectService.getProjectById(this.data.projectId)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse<ProjectModel>) => {
+          if (response.success) {
+            const project = response.data || new ProjectModel(0, "", "", "Not Started", new Date(), new Date());
+            this.form.patchValue({
+              id: project.id,
+              name_: project.name_,
+              description_: project.description_,
+              status_: project.status_,
+              startDate: project.startDate,
+              dueDate: project.dueDate
+            });
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message);
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to load employees');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
     }
-    this.isLoading = false;
-
-    this.form.patchValue({
-      id: project.id,
-      name_: project.name_,
-      description_: project.description_,
-      status_: project.status_,
-      startDate: project.startDate,
-      dueDate: project.dueDate
-    });
   }
 
   get errorControlsProjectName() {
@@ -138,37 +163,97 @@ export class ProjectDialog implements OnInit, OnDestroy {
   }
 
   createProject(): void {
-    this.isLoading = true;
-    const formValue = this.form.getRawValue();
-    const newProject: ProjectModel = {
-      id: formValue.id,
-      name_: formValue.name_.trim(),
-      description_: formValue.description_.trim(),
-      status_: formValue.status_,
-      startDate: formValue.startDate,
-      dueDate: formValue.dueDate
+    if (this.form.valid) {
+      this.isLoading = true;
+      const formValue = this.form.getRawValue();
+      const newProject: ProjectModel = {
+        id: formValue.id,
+        name_: formValue.name_.trim(),
+        description_: formValue.description_.trim(),
+        status_: formValue.status_,
+        startDate: formValue.startDate,
+        dueDate: formValue.dueDate
+      }
+      this._projectService.createProject(newProject)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse<ProjectModel>) => {
+          if (response.success) {
+            setTimeout(() => {
+              this._projectService.notifyProjectsChanged();
+            });
+            setTimeout(() => {
+              this._snackbarService.success(response.message || "Project created successfully.");
+            });
+            this.dialogRef.close(this.data.projectId);
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message || "Failed to create project.");
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to create project.');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
+      this.dialogRef.close(this.data.projectId);
+    } else {
+      this._snackbarService.error("Failed to create project.");
+      this.isLoading = false;
     }
-    this._projectService.createProject(newProject);
-    this._projectService.notifyProjectsChanged();
-    this._snackbarService.success("Project created.");
-    this.isLoading = false;
   }
 
   updateProject(): void {
-    this.isLoading = true;
-    const formValue = this.form.getRawValue();
-    const updatedProject: ProjectModel = {
-      id: formValue.id,
-      name_: formValue.name_.trim(),
-      description_: formValue.description_.trim(),
-      status_: formValue.status_,
-      startDate: formValue.startDate,
-      dueDate: formValue.dueDate
+    if (this.form.valid) {
+      this.isLoading = true;
+      const formValue = this.form.getRawValue();
+      const updatedProject: ProjectModel = {
+        id: formValue.id,
+        name_: formValue.name_.trim(),
+        description_: formValue.description_.trim(),
+        status_: formValue.status_,
+        startDate: formValue.startDate,
+        dueDate: formValue.dueDate
+      }
+      this._projectService.updateProject(updatedProject)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse) => {
+          if (response.success) {
+            setTimeout(() => {
+              this._projectService.notifyProjectsChanged();
+            });
+            setTimeout(() => {
+              this._snackbarService.success(response.message);
+            });
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message  || "Failed to update project.");
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to update project.');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
+      this.dialogRef.close(this.data.projectId);
+    } else {
+      this._snackbarService.error("Failed to update project.");
+      this.isLoading = false;
     }
-    this._projectService.updateProject(updatedProject);
-    this._projectService.notifyProjectsChanged();
-    this._snackbarService.success("Project saved.");
-    this.isLoading = false;
+
   }
 
   ngOnDestroy(): void {

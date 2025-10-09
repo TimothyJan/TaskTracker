@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, Input, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProjectTaskModel } from '../../models/project-task.model';
 import { AssignEmp } from '../../dialogs/assign-emp/assign-emp';
@@ -7,6 +7,7 @@ import { Role } from '../../models/role.model';
 import { Department } from '../../models/department.model';
 import { TruncatePipe } from '../../pipes/truncate-pipe';
 import { Subject, takeUntil } from 'rxjs';
+import { ApiResponse } from '../../models/apiResponse.model';
 
 import { ProjectTaskService } from '../../services/project-task-service';
 import { EmployeeService } from '../../services/employee-service';
@@ -48,6 +49,7 @@ export class AssignedEmp implements OnInit, OnDestroy {
   private _employeeService = inject(EmployeeService);
   private _roleService = inject(RoleService);
   private _departmentService = inject(DepartmentService);
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
 
   @Input() projectTaskId: number = -1;
@@ -55,96 +57,190 @@ export class AssignedEmp implements OnInit, OnDestroy {
   isLoading: boolean = false;
   projectTask: ProjectTaskModel = new ProjectTaskModel(0, 0, "", "", "Not Started", new Date(), new Date(), []);
   assignedEmployeeList: Employee[] = [];
-  employees: Employee[] = [];
-  roles: Role[] = [];
-  departments: Department[] = [];
+
+  // Make these local to each component instance
+  private employees: Employee[] = [];
+  private roles: Role[] = [];
+  private departments: Department[] = [];
 
   constructor(
     private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
-    this.getEmployees();
-    this.getRoles();
-    this.getDepartments();
-
     if(this.projectTaskId != -1) {
       this.getProjectTaskById();
     }
-  }
-
-  /** Get list of assigned employee ids from the projectTask */
-  getProjectTaskById(): void {
-    this.isLoading = true;
-    this.projectTask = this._projectTaskService.getProjectTaskById(this.projectTaskId);
-    this.isLoading = false;
-    this.getAssignedEmployees();
-
-    // Subscribe to the projectTask notifications
-    this._projectTaskService.projectTasksChanged$
-      .pipe(takeUntil(this.unsubscribe$))
-      .subscribe(() => {
-        this.getProjectTaskById(); // Reload projectTask with updates
-      });
-  }
-
-  /** Get list of assigned employees from the projectTask */
-  getAssignedEmployees(): void {
-    if (this.projectTask.assignedEmployeeIds) {
-      this.assignedEmployeeList = [];
-      for (let index = 0; index < this.projectTask.assignedEmployeeIds.length; index++) {
-        this.assignedEmployeeList.push(this.getEmployeeById(this.projectTask.assignedEmployeeIds[index])!);
-      }
-    } else {
-      return ;
-    }
-  }
-
-  /** Get Employee by Id */
-  getEmployeeById(employeeId: number): Employee | null {
-    return this._employeeService.getEmployeeById(employeeId) || null;
-  }
-
-  /** Get all employees */
-  getEmployees(): void {
-    this.isLoading = true;
-    this.employees = this._employeeService.getEmployees();
-    this.isLoading = false;
+    this.getEmployees();
+    this.getRoles();
+    this.getDepartments();
 
     // Subscribe to the employee notifications
     this._employeeService.employeesChanged$
       .pipe(takeUntil(this.unsubscribe$))
       .subscribe(() => {
-        this.getEmployees(); // Reload employees with updates
+        setTimeout(() => this.getEmployees());
       });
+    // Subscribe to the role notifications
+    this._roleService.rolesChanged$
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        setTimeout(() => this.getRoles());
+      });
+    // Subscribe to the department notifications
+    this._departmentService.departmentsChanged$
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        setTimeout(() => this.getDepartments());
+      });
+    // Subscribe to the projectTask notifications
+    this._projectTaskService.projectTasksChanged$
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        setTimeout(() => this.getProjectTaskById());
+      });
+  }
+
+  /** Get all employees */
+  getEmployees(): void {
+    this.isLoading = true;
+    this._employeeService.getEmployees()
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Employee[]>) => {
+        if (response.success) {
+          // Create a new array for this component instance
+          this.employees = [...(response.data || [])];
+          this.getAssignedEmployees();
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load employees');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
   }
 
   /** Get all roles */
   getRoles(): void {
     this.isLoading = true;
-    this.roles = this._roleService.getRoles();
-    this.isLoading = false;
-
-    // Subscribe to the role notifications
-    this._roleService.rolesChanged$
-      .pipe(takeUntil(this.unsubscribe$))
-      .subscribe(() => {
-        this.getRoles(); // Reload roles with updates
-      });
+    this._roleService.getRoles()
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Role[]>) => {
+        if (response.success) {
+          // Create a new array for this component instance
+          this.roles = [...(response.data || [])];
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load roles');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
   }
 
   /** Get all departments */
   getDepartments(): void {
     this.isLoading = true;
-    this.departments = this._departmentService.getDepartments();
-    this.isLoading = false;
+    this._departmentService.getDepartments()
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Department[]>) => {
+        if (response.success) {
+          // Create a new array for this component instance
+          this.departments = [...(response.data || [])];
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load departments');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
+  }
 
-    // Subscribe to the department notifications
-    this._departmentService.departmentsChanged$
-      .pipe(takeUntil(this.unsubscribe$))
-      .subscribe(() => {
-        this.getDepartments(); // Reload departments with updates
-      });
+  /** Get Project Task by Id */
+  getProjectTaskById(): void {
+    this.isLoading = true;
+    this._projectTaskService.getProjectTaskById(this.projectTaskId)
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<ProjectTaskModel>) => {
+        if (response.success) {
+          // Create a new instance for this component
+          this.projectTask = new ProjectTaskModel(
+            response.data?.id || 0,
+            response.data?.projectId || 0,
+            response.data?.name || "",
+            response.data?.description || "",
+            response.data?.status || "Not Started",
+            response.data?.startDate,
+            response.data?.dueDate,
+            response.data?.assignedEmployeeIds ? [...response.data.assignedEmployeeIds] : []
+          );
+          this.getAssignedEmployees();
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load project task');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
+  }
+
+  /** Get list of assigned employees from the projectTask */
+  getAssignedEmployees(): void {
+    this.assignedEmployeeList = [];
+
+    // Check if there are assigned employee IDs and employees are loaded
+    if (this.projectTask.assignedEmployeeIds &&
+        this.projectTask.assignedEmployeeIds.length > 0 &&
+        this.employees.length > 0) {
+
+      // Filter employees to only include those with matching IDs
+      this.assignedEmployeeList = this.employees.filter(employee =>
+        this.projectTask.assignedEmployeeIds!.includes(employee.id)
+      );
+    }
+
+    // Trigger change detection
+    this._cdr.detectChanges();
   }
 
   /** Get Department name_ from DepartmentId */
@@ -159,7 +255,7 @@ export class AssignedEmp implements OnInit, OnDestroy {
     return role ? role.name_ : undefined;
   }
 
-  /** Oopens Assign Employee Dialog */
+  /** Opens Assign Employee Dialog */
   async openAssignEmployees() {
     this.dialog.open(AssignEmp, {
       width: '500px',

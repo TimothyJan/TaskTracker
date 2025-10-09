@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, Inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, Inject, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { Employee } from '../../models/employee.model';
 import { ProjectTaskModel } from '../../models/project-task.model';
+import { ApiResponse } from '../../models/apiResponse.model';
 
 import { SnackbarService } from '../../services/snackbar-service';
 import { EmployeeService } from '../../services/employee-service';
@@ -39,6 +40,7 @@ export class AssignEmp implements OnInit, OnDestroy {
   private _snackbarService = inject(SnackbarService);
   private _projectTaskService = inject(ProjectTaskService);
   private _employeeService = inject(EmployeeService);
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
 
   isLoading: boolean = false;
@@ -58,34 +60,75 @@ export class AssignEmp implements OnInit, OnDestroy {
     if (this.projectTask.assignedEmployeeIds) {
       this.selectedEmployees = [...this.projectTask.assignedEmployeeIds];
     }
-  }
-
-  /** Get Project Task by Id */
-  getProjectTaskById(id: number): void {
-    this.isLoading = true;
-    this.projectTask = this._projectTaskService.getProjectTaskById(id);
-    this.isLoading = false;
-
-    // Subscribe to the projectTask notifications
-    this._projectTaskService.projectTasksChanged$
-      .pipe(takeUntil(this.unsubscribe$))
-      .subscribe(() => {
-        this.getProjectTaskById(this.projectTask.id); // Reload projectTask with updates
-      });
-  }
-
-  /** Get Employees */
-  getEmployees(): void {
-    this.isLoading = true;
-    this.employees = this._employeeService.getEmployees();
-    this.isLoading = false;
-
     // Subscribe to the employee notifications
     this._employeeService.employeesChanged$
       .pipe(takeUntil(this.unsubscribe$))
       .subscribe(() => {
-        this.getEmployees(); // Reload employees with updates
+        setTimeout(() => this.getEmployees());
       });
+    // Subscribe to the projectTask notifications
+    this._projectTaskService.projectTasksChanged$
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        setTimeout(() => this.getProjectTaskById(this.data.projectTaskId));
+      });
+  }
+
+  /** Get Project Task by Id */
+  getProjectTaskById(projectId: number): void {
+    this.isLoading = true;
+    this._projectTaskService.getProjectTaskById(projectId)
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<ProjectTaskModel>) => {
+        if (response.success) {
+          this.projectTask = response.data || new ProjectTaskModel(0, 0, "", "", "Not Started", new Date(), new Date(), []);
+          if (this.projectTask.assignedEmployeeIds) {
+            this.selectedEmployees = this.projectTask.assignedEmployeeIds;
+          }
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load employees');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
+  }
+
+  /** Get all employees */
+  getEmployees(): void {
+    this.isLoading = true;
+    this._employeeService.getEmployees()
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<Employee[]>) => {
+        if (response.success) {
+          this.employees = response.data || [];
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load employees');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
   }
 
   /** Check if employee is selected */
@@ -96,11 +139,46 @@ export class AssignEmp implements OnInit, OnDestroy {
   /** Save the assigned employees */
   saveAssignments(): void {
     this.isLoading = true;
-    this.projectTask.assignedEmployeeIds = this.selectedEmployees;
-    this._projectTaskService.updateProjectTask(this.projectTask);
-    this._projectTaskService.notifyProjectTasksChanged();
-    this.isLoading = false;
-    this.dialogRef.close(this.selectedEmployees);
+
+    const updatedProjectTask: ProjectTaskModel = {
+      id: this.projectTask.id,
+      projectId: this.projectTask.projectId,
+      name: this.projectTask.name.trim(),
+      description: this.projectTask.description.trim(),
+      status: this.projectTask.status,
+      startDate: this.projectTask.startDate,
+      dueDate: this.projectTask.dueDate,
+      assignedEmployeeIds: this.selectedEmployees
+    };
+
+    this._projectTaskService.updateProjectTask(updatedProjectTask)
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse) => {
+        if (response.success) {
+          setTimeout(() => {
+            this._projectTaskService.notifyProjectTasksChanged();
+          });
+          setTimeout(() => {
+            this._snackbarService.success(response.message);
+          });
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load employees');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
+    this.dialogRef.close(this.data.projectTaskId)
   }
 
   /** Cancel and close dialog */

@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, inject, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, inject, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Role } from '../../models/role.model';
-import { Subject } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
+import { ApiResponse } from '../../models/apiResponse.model';
 
 import { SnackbarService } from '../../services/snackbar-service';
 import { RoleService } from '../../services/role-service';
@@ -30,6 +31,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 export class SelectRole implements OnInit, OnChanges, OnDestroy {
   private _snackbarService = inject(SnackbarService);
   private _roleService = inject(RoleService);
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
 
   @Input() departmentId: number | null = null;
@@ -45,6 +47,13 @@ export class SelectRole implements OnInit, OnChanges, OnDestroy {
   ngOnInit(): void {
     this.getRoles();
     this.setSelectedRole();
+
+    // Subscribe to the role notifications
+    this._roleService.rolesChanged$
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        setTimeout(() => this.getRoles());
+      });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -60,9 +69,27 @@ export class SelectRole implements OnInit, OnChanges, OnDestroy {
   getRoles(): void {
     if (this.departmentId !== null) {
       this.isLoading = true;
-      this.roles = this._roleService.getRolesFromDepartmentId(this.departmentId);
-      this.isLoading = false;
-      this.selectedRoleId = null; // Reset selection when department changes
+      this._roleService.getRolesFromDepartmentId(this.departmentId)
+      .subscribe({
+        next: (response: ApiResponse<Role[]>) => {
+          if (response.success) {
+            this.roles = response.data || [];
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message);
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to load roles');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
     } else {
       this.roles = [];
       this.selectedRoleId = null;
@@ -71,7 +98,7 @@ export class SelectRole implements OnInit, OnChanges, OnDestroy {
 
   /** Set the selected role based on input roleId */
   setSelectedRole(): void {
-    if (this.roleId !== null && this.roles.some(role => role.id === this.roleId)) {
+    if (this.roleId !== null) {
       this.selectedRoleId = this.roleId;
     } else {
       this.selectedRoleId = null;

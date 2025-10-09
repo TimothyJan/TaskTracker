@@ -187,5 +187,19 @@ namespace TaskTracker.Controllers
                 return InternalError($"Error retrieving {EntityName} records by status: {ex.Message}");
             }
         }
+
+        [HttpGet("ids")]
+        public async Task<IActionResult> GetProjectIds()
+        {
+            try
+            {
+                var projectIds = await _projectRepository.GetProjectIdsAsync();
+                return Success(projectIds, string.Format(SuccessMessages.Retrieved, $"{EntityName} IDs"));
+            }
+            catch (Exception ex)
+            {
+                return InternalError($"Error retrieving {EntityName} IDs: {ex.Message}");
+            }
+        }
     }
 }

@@ -183,5 +183,37 @@ namespace TaskTracker.Repositories
                     nameof(ProjectTaskEntity.AssignedEmployeeIds));
             }
         }
+
+        public async Task<int[]> GetProjectTaskIdsByProjectIdAsync(int projectId)
+        {
+            if (projectId < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(projectId),
+                    "Project ID must be greater than 0.");
+            }
+
+            return await _context.ProjectTasks
+                .AsNoTracking()
+                .Where(pt => pt.ProjectId == projectId)
+                .OrderBy(pt => pt.Id)
+                .Select(pt => pt.Id)
+                .ToArrayAsync();
+        }
+
+        public async Task<IEnumerable<ProjectTaskEntity>> GetProjectTasksWithDetailsByProjectIdAsync(int projectId)
+        {
+            if (projectId < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(projectId),
+                    "Project ID must be greater than 0.");
+            }
+
+            return await _context.ProjectTasks
+                .AsNoTracking()
+                .Include(pt => pt.Project)
+                .Where(pt => pt.ProjectId == projectId)
+                .OrderBy(pt => pt.Name)
+                .ToListAsync();
+        }
     }
 }

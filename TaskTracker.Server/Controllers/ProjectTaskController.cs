@@ -199,5 +199,43 @@ namespace TaskTracker.Controllers
                 return InternalError($"Error retrieving {EntityName} records by employee: {ex.Message}");
             }
         }
+
+        [HttpGet("project/{projectId}/ids")]
+        public async Task<IActionResult> GetProjectTaskIdsByProjectId(int projectId)
+        {
+            try
+            {
+                var projectTaskIds = await _projectTaskRepository.GetProjectTaskIdsByProjectIdAsync(projectId);
+                return Success(projectTaskIds, string.Format(SuccessMessages.Retrieved, $"{EntityName} IDs for project"));
+            }
+            catch (ArgumentOutOfRangeException ex)
+            {
+                return Failure(ex.Message, statusCode: 400);
+            }
+            catch (Exception ex)
+            {
+                return InternalError($"Error retrieving {EntityName} IDs by project: {ex.Message}");
+            }
+        }
+
+        [HttpGet("project/{projectId}/tasks")]
+        public async Task<IActionResult> GetProjectTasksWithDetailsByProjectId(int projectId)
+        {
+            try
+            {
+                var projectTasks = await _projectTaskRepository.GetProjectTasksWithDetailsByProjectIdAsync(projectId);
+                var projectTaskDtos = _mapper.Map<IEnumerable<ProjectTaskDto>>(projectTasks);
+
+                return Success(projectTaskDtos, string.Format(SuccessMessages.Retrieved, $"{EntityName} records with details for project"));
+            }
+            catch (ArgumentOutOfRangeException ex)
+            {
+                return Failure(ex.Message, statusCode: 400);
+            }
+            catch (Exception ex)
+            {
+                return InternalError($"Error retrieving {EntityName} records with details by project: {ex.Message}");
+            }
+        }
     }
 }

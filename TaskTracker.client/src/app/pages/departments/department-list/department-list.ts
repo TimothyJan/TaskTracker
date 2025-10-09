@@ -124,7 +124,7 @@ export class DepartmentList implements OnInit, OnDestroy {
           },
           error: (response) => {
             setTimeout(() => {
-              this._snackbarService.error(response.error?.message || 'Failed to delete department');
+              this._snackbarService.error(response.error?.message || 'Failed to delete department.');
             });
             this.isLoading = false;
             this._cdr.detectChanges();

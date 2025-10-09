@@ -14,5 +14,7 @@ namespace TaskTracker.Repositories.Interfaces
         Task<IEnumerable<ProjectTaskEntity>> GetProjectTasksByProjectIdAsync(int projectId);
         Task<IEnumerable<ProjectTaskEntity>> GetProjectTasksByStatusAsync(string status);
         Task<IEnumerable<ProjectTaskEntity>> GetProjectTasksByEmployeeIdAsync(int employeeId);
+        Task<int[]> GetProjectTaskIdsByProjectIdAsync(int projectId);
+        Task<IEnumerable<ProjectTaskEntity>> GetProjectTasksWithDetailsByProjectIdAsync(int projectId);
     }
 }

@@ -66,20 +66,42 @@ export class AssignEmp implements OnInit, OnDestroy {
       .subscribe(() => {
         setTimeout(() => this.getEmployees());
       });
-  }
-
-  /** Get Project Task by Id */
-  getProjectTaskById(id: number): void {
-    this.isLoading = true;
-    this.projectTask = this._projectTaskService.getProjectTaskById(id);
-    this.isLoading = false;
-
     // Subscribe to the projectTask notifications
     this._projectTaskService.projectTasksChanged$
       .pipe(takeUntil(this.unsubscribe$))
       .subscribe(() => {
-        this.getProjectTaskById(this.projectTask.id); // Reload projectTask with updates
+        setTimeout(() => this.getProjectTaskById(this.data.projectTaskId));
       });
+  }
+
+  /** Get Project Task by Id */
+  getProjectTaskById(projectId: number): void {
+    this.isLoading = true;
+    this._projectTaskService.getProjectTaskById(projectId)
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<ProjectTaskModel>) => {
+        if (response.success) {
+          this.projectTask = response.data || new ProjectTaskModel(0, 0, "", "", "Not Started", new Date(), new Date(), []);
+          if (this.projectTask.assignedEmployeeIds) {
+            this.selectedEmployees = this.projectTask.assignedEmployeeIds;
+          }
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load employees');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
   }
 
   /** Get all employees */
@@ -117,11 +139,46 @@ export class AssignEmp implements OnInit, OnDestroy {
   /** Save the assigned employees */
   saveAssignments(): void {
     this.isLoading = true;
-    this.projectTask.assignedEmployeeIds = this.selectedEmployees;
-    this._projectTaskService.updateProjectTask(this.projectTask);
-    this._projectTaskService.notifyProjectTasksChanged();
-    this.isLoading = false;
-    this.dialogRef.close(this.selectedEmployees);
+
+    const updatedProjectTask: ProjectTaskModel = {
+      id: this.projectTask.id,
+      projectId: this.projectTask.projectId,
+      name: this.projectTask.name.trim(),
+      description: this.projectTask.description.trim(),
+      status: this.projectTask.status,
+      startDate: this.projectTask.startDate,
+      dueDate: this.projectTask.dueDate,
+      assignedEmployeeIds: this.selectedEmployees
+    };
+
+    this._projectTaskService.updateProjectTask(updatedProjectTask)
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse) => {
+        if (response.success) {
+          setTimeout(() => {
+            this._projectTaskService.notifyProjectTasksChanged();
+          });
+          setTimeout(() => {
+            this._snackbarService.success(response.message);
+          });
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load employees');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
+    this.dialogRef.close(this.data.projectTaskId)
   }
 
   /** Cancel and close dialog */

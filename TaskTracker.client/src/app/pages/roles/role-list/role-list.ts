@@ -193,7 +193,7 @@ export class RoleList  implements OnInit, OnDestroy {
                 this._snackbarService.success("Role deleted.");
               });
               setTimeout(() => {
-                this._departmentService.notifyDepartmentsChanged();
+                this._roleService.notifyRolesChanged();
               });
             } else {
               setTimeout(() => {

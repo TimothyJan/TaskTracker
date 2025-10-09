@@ -3,8 +3,12 @@
   "WorkspaceRootPath": "C:\\Github\\TaskTracker\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{5B7E38F0-66E7-4B89-BE8D-9249E1206242}|TaskTracker.Server\\TaskTracker.csproj|c:\\github\\tasktracker\\tasktracker.server\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{5B7E38F0-66E7-4B89-BE8D-9249E1206242}|TaskTracker.Server\\TaskTracker.csproj|solutionrelative:tasktracker.server\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{5B7E38F0-66E7-4B89-BE8D-9249E1206242}|TaskTracker.Server\\TaskTracker.csproj|c:\\github\\tasktracker\\tasktracker.server\\models\\projecttask\\projecttaskentity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5B7E38F0-66E7-4B89-BE8D-9249E1206242}|TaskTracker.Server\\TaskTracker.csproj|solutionrelative:tasktracker.server\\models\\projecttask\\projecttaskentity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5B7E38F0-66E7-4B89-BE8D-9249E1206242}|TaskTracker.Server\\TaskTracker.csproj|c:\\github\\tasktracker\\tasktracker.server\\models\\project\\projectentity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{5B7E38F0-66E7-4B89-BE8D-9249E1206242}|TaskTracker.Server\\TaskTracker.csproj|solutionrelative:tasktracker.server\\models\\project\\projectentity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -14,7 +18,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Bookmark",
@@ -30,15 +34,27 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Github\\TaskTracker\\TaskTracker.Server\\Program.cs",
-              "RelativeDocumentMoniker": "TaskTracker.Server\\Program.cs",
-              "ToolTip": "C:\\Github\\TaskTracker\\TaskTracker.Server\\Program.cs",
-              "RelativeToolTip": "TaskTracker.Server\\Program.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAA==",
+              "DocumentIndex": 1,
+              "Title": "ProjectEntity.cs",
+              "DocumentMoniker": "C:\\Github\\TaskTracker\\TaskTracker.Server\\Models\\Project\\ProjectEntity.cs",
+              "RelativeDocumentMoniker": "TaskTracker.Server\\Models\\Project\\ProjectEntity.cs",
+              "ToolTip": "C:\\Github\\TaskTracker\\TaskTracker.Server\\Models\\Project\\ProjectEntity.cs",
+              "RelativeToolTip": "TaskTracker.Server\\Models\\Project\\ProjectEntity.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-02T15:59:41.945Z",
+              "WhenOpened": "2025-10-09T17:35:13.663Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ProjectTaskEntity.cs",
+              "DocumentMoniker": "C:\\Github\\TaskTracker\\TaskTracker.Server\\Models\\ProjectTask\\ProjectTaskEntity.cs",
+              "RelativeDocumentMoniker": "TaskTracker.Server\\Models\\ProjectTask\\ProjectTaskEntity.cs",
+              "ToolTip": "C:\\Github\\TaskTracker\\TaskTracker.Server\\Models\\ProjectTask\\ProjectTaskEntity.cs",
+              "RelativeToolTip": "TaskTracker.Server\\Models\\ProjectTask\\ProjectTaskEntity.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-09T17:34:22.539Z",
               "EditorCaption": ""
             }
           ]

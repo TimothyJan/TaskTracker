@@ -14,7 +14,6 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSelectChange } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
-
 @Component({
   selector: 'app-select-dept',
   imports: [

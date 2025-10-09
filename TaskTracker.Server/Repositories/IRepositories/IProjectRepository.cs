@@ -13,5 +13,6 @@ namespace TaskTracker.Repositories.Interfaces
         Task<bool> ProjectNameExistsAsync(string name, int? excludeId = null);
         Task<int> GetProjectCountAsync();
         Task<IEnumerable<ProjectEntity>> GetProjectsByStatusAsync(string status);
+        Task<int[]> GetProjectIdsAsync();
     }
 }

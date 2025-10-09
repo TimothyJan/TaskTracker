@@ -155,6 +155,7 @@ export class RoleDialog implements OnInit, OnDestroy {
           this._cdr.detectChanges();
         }
       });
+      this.dialogRef.close(this.data.roleId);
     } else {
       this._snackbarService.error("Failed to create role.");
       this.isLoading = false;

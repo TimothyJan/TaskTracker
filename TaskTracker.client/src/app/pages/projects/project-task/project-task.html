@@ -10,7 +10,7 @@
       <mat-grid-tile colspan="7"></mat-grid-tile>
       <mat-grid-tile colspan="3">
         <div class="status">
-          {{ projectTask.status_ }}
+          {{ projectTask.status }}
         </div>
       </mat-grid-tile>
       <mat-grid-tile colspan="1">
@@ -29,10 +29,10 @@
     <mat-card-content>
 
       <mat-card-title>
-        {{ projectTask.name_ }}
+        {{ projectTask.name }}
       </mat-card-title>
 
-      <p>{{ projectTask.description_ }}</p>
+      <p>{{ projectTask.description }}</p>
 
       <app-assigned-emp [projectTaskId]="projectTaskId"></app-assigned-emp>
 

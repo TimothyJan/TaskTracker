@@ -184,7 +184,7 @@ export class EmployeeDialog implements OnInit, OnDestroy {
               this._employeeService.notifyEmployeesChanged();
             });
             setTimeout(() => {
-              this._snackbarService.success(response.message || "Employee created successfully");
+              this._snackbarService.success(response.message || "Employee created successfully.");
             });
             this.dialogRef.close(this.data.employeeId);
           } else {
@@ -203,6 +203,7 @@ export class EmployeeDialog implements OnInit, OnDestroy {
           this._cdr.detectChanges();
         }
       });
+      this.dialogRef.close(this.data.employeeId);
     } else {
       this._snackbarService.error("Failed to create employee.");
       this.isLoading = false;

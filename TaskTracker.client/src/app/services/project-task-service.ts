@@ -46,7 +46,7 @@ export class ProjectTaskService {
   }
 
   /** Get list of Project Task Ids based on ProjectId */
-  getListOfProjectTaskIdsByProjectIds(projectId: number): Observable<ApiResponse<number[]>> {
+  getListOfProjectTaskIdsByProjectId(projectId: number): Observable<ApiResponse<number[]>> {
     return this.http.get<ApiResponse<number[]>>(`${this.apiUrl}/project/${projectId}/ids`);
   }
 

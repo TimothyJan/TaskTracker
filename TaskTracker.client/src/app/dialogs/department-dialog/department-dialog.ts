@@ -149,6 +149,7 @@ export class DepartmentDialog implements OnInit, OnDestroy {
           this._cdr.detectChanges();
         }
       });
+      this.dialogRef.close(this.data.departmentId);
     } else {
       this._snackbarService.error("Role failed to be created.");
       this.isLoading = false;

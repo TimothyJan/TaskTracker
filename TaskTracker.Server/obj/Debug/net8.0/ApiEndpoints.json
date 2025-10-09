@@ -300,6 +300,16 @@
   },
   {
     "ContainingType": "TaskTracker.Controllers.ProjectController",
+    "Method": "GetProjectIds",
+    "RelativePath": "api/Project/ids",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "TaskTracker.Controllers.ProjectController",
     "Method": "GetProjectsByStatus",
     "RelativePath": "api/Project/status/{status}",
     "HttpMethod": "GET",
@@ -423,6 +433,38 @@
     "ContainingType": "TaskTracker.Controllers.ProjectTaskController",
     "Method": "GetProjectTasksByProjectId",
     "RelativePath": "api/ProjectTask/project/{projectId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "projectId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "TaskTracker.Controllers.ProjectTaskController",
+    "Method": "GetProjectTaskIdsByProjectId",
+    "RelativePath": "api/ProjectTask/project/{projectId}/ids",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "projectId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "TaskTracker.Controllers.ProjectTaskController",
+    "Method": "GetProjectTasksWithDetailsByProjectId",
+    "RelativePath": "api/ProjectTask/project/{projectId}/tasks",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,

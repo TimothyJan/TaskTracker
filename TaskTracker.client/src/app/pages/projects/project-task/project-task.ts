@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, Input, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, Input, OnInit } from '@angular/core';
 import { ProjectTaskModel } from '../../../models/project-task.model';
 import { AssignedEmp } from '../../../components/assigned-emp/assigned-emp';
 import { Subject, takeUntil } from 'rxjs';
 import { ProjectTaskDialog } from '../../../dialogs/project-task-dialog/project-task-dialog';
+import { ApiResponse } from '../../../models/apiResponse.model';
 
 import { SnackbarService } from '../../../services/snackbar-service';
 import { ProjectTaskService } from '../../../services/project-task-service';
@@ -35,8 +36,11 @@ import { MatDialog } from '@angular/material/dialog';
 export class ProjectTask implements OnInit{
   private _snackbarService = inject(SnackbarService);
   private _projectTaskService = inject(ProjectTaskService);
+  private _cdr = inject(ChangeDetectorRef);
   private unsubscribe$ = new Subject<void>();
+
   @Input() projectTaskId: number = 0;
+
   isLoading: boolean = false;
   projectTask: ProjectTaskModel = new ProjectTaskModel(0, 0, "", "", "Not Started", new Date(), new Date(), []);
 
@@ -46,20 +50,40 @@ export class ProjectTask implements OnInit{
 
   ngOnInit(): void {
     this.getProjectTaskById();
+
+    // Subscribe to the projectTask notifications
+    this._projectTaskService.projectTasksChanged$
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(() => {
+        setTimeout(() => this.getProjectTaskById());
+      });
   }
 
   /** Get ProjectTask by Id */
   getProjectTaskById(): void {
     this.isLoading = true;
-    this.projectTask = this._projectTaskService.getProjectTaskById(this.projectTaskId);
-    this.isLoading = false;
-
-    // Subscribe to the project notifications
-    this._projectTaskService.projectTasksChanged$
-      .pipe(takeUntil(this.unsubscribe$))
-      .subscribe(() => {
-        this.getProjectTaskById(); // Reload projectTask with updates
-      });
+    this._projectTaskService.getProjectTaskById(this.projectTaskId)
+    .pipe(takeUntil(this.unsubscribe$))
+    .subscribe({
+      next: (response: ApiResponse<ProjectTaskModel>) => {
+        if (response.success) {
+          this.projectTask = response.data || new ProjectTaskModel(0, 0, "", "", "Not Started", new Date(), new Date(), []);
+        } else {
+          setTimeout(() => {
+            this._snackbarService.error(response.message);
+          });
+        }
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      },
+      error: (response) => {
+        setTimeout(() => {
+          this._snackbarService.error(response.error?.message || 'Failed to load employees.');
+        });
+        this.isLoading = false;
+        this._cdr.detectChanges();
+      }
+    });
   }
 
   /** Opens Project Task Edit Dialog */
@@ -72,11 +96,35 @@ export class ProjectTask implements OnInit{
 
   /** Delete ProjectTask */
   onDelete(): void {
-    const confirmDelete = confirm('Are you sure you want to delete this projectTask?');
+    const confirmDelete = confirm('Are you sure you want to delete this Project Task?');
     if (confirmDelete) {
-      this.isLoading = true;
-      this._projectTaskService.deleteProjectTask(this.projectTaskId);
-      this.isLoading = false;
+      this._projectTaskService.deleteProjectTask(this.projectTaskId)
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe({
+        next: (response: ApiResponse) => {
+          if (response.success) {
+            setTimeout(() => {
+              this._snackbarService.success("Project Task deleted.");
+            });
+            setTimeout(() => {
+              this._projectTaskService.notifyProjectTasksChanged();
+            });
+          } else {
+            setTimeout(() => {
+              this._snackbarService.error(response.message);
+            });
+          }
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        },
+        error: (response) => {
+          setTimeout(() => {
+            this._snackbarService.error(response.error?.message || 'Failed to delete project task.');
+          });
+          this.isLoading = false;
+          this._cdr.detectChanges();
+        }
+      });
     }
   }
 
